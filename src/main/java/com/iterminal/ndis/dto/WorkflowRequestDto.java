@@ -17,12 +17,11 @@ import java.util.List;
 @NoArgsConstructor
 @Builder
 public class WorkflowRequestDto {
-
     private Long workflowId;
     private String workflowName;
     private Long createdDateTime;
     private User createdBy;
     private List<WorkflowStep> steps = new ArrayList<>();
-    private List<WorkflowPermission> permissionList = new ArrayList<>();
+    private List<WorkflowPermissionRequestDto> permissionList = new ArrayList<>();
 
 }

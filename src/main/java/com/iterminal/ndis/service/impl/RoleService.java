@@ -1,9 +1,3 @@
-/*
- * Copyright (C) 2021 iTerminal Technologies Pvt Ltd.
- * All rights reserved. This software is the confidential and proprietary information of iTerminal Technologies Pvt Ltd.
- * You shall not disclose such confidential information and shall use it only in accordance with the terms of
- * the license agreement you entered into with iTerminal Technologies Pvt Ltd.
- */
 package com.iterminal.ndis.service.impl;
 
 import com.iterminal.ndis.dto.response.PaginationDto;
@@ -190,7 +184,7 @@ public class RoleService implements IRoleService {
 
         try {
             List<Role> roleList = new ArrayList<>();
-            roleList = roleRepository.findAll(Sort.by(Sort.Direction.DESC, "createdDateTime"));
+            roleList = roleRepository.findAllByStatusEquals("Active", Sort.by(Sort.Direction.DESC, "createdDateTime"));
             if (!roleList.isEmpty()) {
                 return roleList;
             } else {

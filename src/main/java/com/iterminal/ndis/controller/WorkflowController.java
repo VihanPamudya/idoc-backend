@@ -5,6 +5,7 @@ import com.iterminal.ndis.dto.UserGroupRequestDto;
 import com.iterminal.ndis.dto.WorkflowRequestDto;
 import com.iterminal.ndis.dto.response.PaginationDto;
 import com.iterminal.ndis.dto.response.UserGroupDto;
+import com.iterminal.ndis.dto.response.WorkflowBasicDto;
 import com.iterminal.ndis.dto.response.WorkflowDto;
 import com.iterminal.ndis.model.Company;
 import com.iterminal.ndis.model.UserGroup;
@@ -40,9 +41,9 @@ public class WorkflowController {
     }
 
     @PostMapping(value = "/list/all")
-    public ResponseEntity<PaginationDto<Workflow>> getAllWorkflows(@RequestBody RequestListDto requestList) {
+    public ResponseEntity<PaginationDto<WorkflowDto>> getAllWorkflows(@RequestBody RequestListDto requestList) {
         try {
-            PaginationDto<Workflow> workflowList = workflowService.getPaginatedList(requestList);
+            PaginationDto<WorkflowDto> workflowList = workflowService.getPaginatedList(requestList);
             return new ResponseEntity<>(workflowList, HttpStatus.OK);
         } catch (CustomException ex) {
             return ErrorResponseUtil.errorResponse(ex);
@@ -67,6 +68,16 @@ public class WorkflowController {
             WorkflowDto savedWorkflow = workflowService.create(workflowRequestDto);
             return new ResponseEntity<>(savedWorkflow, HttpStatus.OK);
         } catch (CustomException ex){
+            return ErrorResponseUtil.errorResponse(ex);
+        }
+    }
+
+    @PostMapping("/listbyuser")
+    public ResponseEntity<List<WorkflowBasicDto>> getWorkflowByUserId() {
+        try {
+            List<WorkflowBasicDto> foundWorkflows = workflowService.getWorkflowByUserId();
+            return new ResponseEntity<>(foundWorkflows, HttpStatus.OK);
+        } catch (CustomException ex) {
             return ErrorResponseUtil.errorResponse(ex);
         }
     }

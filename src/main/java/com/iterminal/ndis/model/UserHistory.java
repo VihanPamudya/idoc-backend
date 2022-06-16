@@ -26,9 +26,6 @@ public class UserHistory {
     @Column(name = "action", length = 20)
     private String action;
 
-//    @Column(name = "title", length = 20)
-//    private String title;
-
     @Column(name = "first_name", length = 50)
     private String firstName;
 
@@ -55,9 +52,6 @@ public class UserHistory {
 
     @Column(name = "mobile_number", nullable = false, length = 15)
     private String mobileNumber;
-
-//    @Column(name = "groups", nullable = false, length = 30)
-//    private String groups;
 
     @Column(name = "status", length = 20)
     private String status;

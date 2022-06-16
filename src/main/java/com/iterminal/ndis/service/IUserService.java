@@ -1,10 +1,4 @@
-/*
- * Copyright (C) 2021 iTerminal Technologies Pvt Ltd.
- * All rights reserved. This software is the confidential and proprietary information of iTerminal Technologies Pvt Ltd.
- * You shall not disclose such confidential information and shall use it only in accordance with the terms of
- * the license agreement you entered into with iTerminal Technologies Pvt Ltd.
- */
-package com.iterminal.ndis.service;
+ package com.iterminal.ndis.service;
 
 import com.iterminal.ndis.dto.RequestChanagePasswordDto;
 import com.iterminal.ndis.dto.UserRequestDto;
@@ -43,14 +37,6 @@ public interface IUserService {
     public User inactive(String epfNumber) throws CustomException;
 
     public User active(String epfNumber) throws CustomException;
-
-    public User block(String epfNumber) throws CustomException;
-
-    public User unblock(String epfNumber) throws CustomException;
-
-    public void lock(String epfNumber) throws CustomException;
-
-    public void unlock(String epfNumber) throws CustomException;
 
     public List<UserHistory> getUserHistory(String epfNumber) throws CustomException;
 

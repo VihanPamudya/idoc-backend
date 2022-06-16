@@ -1,9 +1,3 @@
-/*
- * Copyright (C) 2021 iTerminal Technologies Pvt Ltd.
- * All rights reserved. This software is the confidential and proprietary information of iTerminal Technologies Pvt Ltd.
- * You shall not disclose such confidential information and shall use it only in accordance with the terms of
- * the license agreement you entered into with iTerminal Technologies Pvt Ltd.
- */
 package com.iterminal.ndis.util;
 
 public class MessagesAndContent {
@@ -64,8 +58,8 @@ public class MessagesAndContent {
     public static final String USER_M09 = "User does not exists.";
     public static final String USER_M010 = "User already active.";
     public static final String USER_M011 = "User already inactive.";
-    public static final String USER_M012 = "User already block.";
-    public static final String USER_M013 = "User already unblock.";
+    public static final String USER_M012 = "Storage quota is required.";
+    public static final String USER_M013 = "Gender is required.";
     public static final String USER_M014 = "Username is required.";
     public static final String USER_M015 = "Password is required.";
     public static final String USER_M016 = "New password does not exists.";
@@ -79,7 +73,7 @@ public class MessagesAndContent {
     public static final String USER_M024 = "Designation is required.";
     public static final String USER_M025 = "Organization is required.";
     public static final String USER_M026 = "Organization does not exists.";
-    public static final String USER_M027 = "Invalid EPF Number.";
+    public static final String USER_M027 = "Invalid Employee Number.";
     public static final String USER_M028 = "Invalid designation.";
     public static final String USER_M029 = "User roles are required.";
     public static final String USER_M030 = "User administrative area is required.";
@@ -89,6 +83,8 @@ public class MessagesAndContent {
     public static final String USER_M034 = "Email already exists.";
     public static final String USER_M035 = "User Status is required.";
     public static final String USER_M036 = "User groups are required.";
+    public static final String USER_M037 = "Date of Birth is required.";
+    public static final String USER_M038 = "Address is required.";
 
     //USER_SIGN_IN
     public static final String USER_SIGN_IN_M01 = "Wrong username/password combination. You have <?> attempts left to sign in.";
@@ -100,8 +96,6 @@ public class MessagesAndContent {
     public static final String USER_SIGN_IN_M07 = "Your account has been inactive. Please contact the User Administrator on the administration helpline.";
     public static final String USER_SIGN_IN_M08 = "Your account has been blocked. Please contact User Administrator on administration helpline.";
 
-    //ORGANIZATION
-    public static final String ORGANIZATION_M01 = "Organization does not exist by given id.";
 
     //NOTIFICATION
     public static final String NOTIFICATION_II_M1 = "Notification id is required.";
@@ -123,6 +117,9 @@ public class MessagesAndContent {
     public static final String GROUP_M03 = "User group does not exist.";
     public static final String GROUP_M04 = "User group is already inactive.";
     public static final String GROUP_M05 = "Group Status is required.";
+    public static final String GROUP_M06 = "Invalid group.";
+    public static final String GROUP_M07 = "User group id does not exists with the given id.";
+
 
     //TAG
     public static final String TAG_M01 = "Tag name is required.";
@@ -144,6 +141,21 @@ public class MessagesAndContent {
     public static final String COMPANY_M010 = "Company is already inactive.";
     public static final String COMPANY_M011 = "Company is already active.";
     public static final String COMPANY_M012 = "Company status is required.";
+    public static final String COMPANY_M013 = "Company name already exists.";
+
+    //FILE
+    public static final String FILE_M01 = "File already exists.";
+    public static final String FILE_M02 = "File does not exist.";
+
+    //DOCUMENT
+    public static final String DOCUMENT_M01 = "Document title is required.";
+    public static final String DOCUMENT_M02 = "Document description is required.";
+    public static final String DOCUMENT_M03 = "Document language is required.";
+    public static final String DOCUMENT_M04 = "Document does not exist.";
+    public static final String DOCUMENT_M05 = "Document is already inactive.";
+    public static final String DOCUMENT_M06 = "Document ID is required.";
+
+
 
 
 

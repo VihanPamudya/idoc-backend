@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import com.iterminal.ndis.service.IUserService;
 import com.iterminal.searchfilters.RequestListCountDto;
 
@@ -32,6 +33,7 @@ public class UserController {
         this.userService = userService;
     }
 
+    //Find user by user name
     @GetMapping(value = "/view/{name}")
     public ResponseEntity<UserDto> getUser(@PathVariable("name") String epfNumber) {
 
@@ -45,6 +47,7 @@ public class UserController {
         }
     }
 
+    //Get user list
     @GetMapping(value = "/list")
     public ResponseEntity<List<User>> getAllUsers() {
 
@@ -56,6 +59,7 @@ public class UserController {
         }
     }
 
+    //Get user count
     @GetMapping(value = "/count")
     public ResponseEntity<CountResultDto> getCount() {
 
@@ -70,6 +74,7 @@ public class UserController {
 
     }
 
+    //Get paginated list
     @PostMapping(value = "/list")
     public ResponseEntity<PaginationDto<User>> getUsers(@RequestBody RequestListDto requestList) {
         try {
@@ -125,7 +130,7 @@ public class UserController {
     public ResponseEntity<Void> deleteUser(@PathVariable("name") List<String> epfNumber) {
 
         try {
-            for(String id:epfNumber){
+            for (String id : epfNumber) {
                 userService.delete(id);
             }
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
@@ -161,53 +166,6 @@ public class UserController {
 
     }
 
-    @PutMapping(value = "/{name}/block")
-    public ResponseEntity<User> block(@PathVariable("name") String epfNumber) {
-
-        try {
-            User updatedUser = userService.block(epfNumber);
-            return new ResponseEntity<>(updatedUser, HttpStatus.OK);
-        } catch (CustomException ex) {
-            return ErrorResponseUtil.errorResponse(ex);
-        }
-
-    }
-
-    @PutMapping(value = "/{name}/unblock")
-    public ResponseEntity<User> unblock(@PathVariable("name") String epfNumber) {
-
-        try {
-            User updatedUser = userService.unblock(epfNumber);
-            return new ResponseEntity<>(updatedUser, HttpStatus.OK);
-        } catch (CustomException ex) {
-            return ErrorResponseUtil.errorResponse(ex);
-        }
-
-    }
-
-    @PutMapping(value = "/{name}/lock")
-    public ResponseEntity<Void> lock(@PathVariable("name") String epfNumber) {
-
-        try {
-            userService.lock(epfNumber);
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-        } catch (CustomException ex) {
-            return ErrorResponseUtil.errorResponse(ex);
-        }
-
-    }
-
-    @PutMapping(value = "/{name}/unlock")
-    public ResponseEntity<Void> unlock(@PathVariable("name") String epfNumber) {
-
-        try {
-            userService.unlock(epfNumber);
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-        } catch (CustomException ex) {
-            return ErrorResponseUtil.errorResponse(ex);
-        }
-
-    }
 
     @GetMapping(value = "/{name}/history")
     public ResponseEntity<List<UserHistory>> getUserHistory(@PathVariable("name") String epfNumber) {
@@ -220,32 +178,4 @@ public class UserController {
         }
 
     }
-
-
-    /*
-    @PostMapping(value = "/change-password")
-    public ResponseEntity<Void> changePassword(@RequestBody RequestChanagePasswordDto request) {
-
-        try {
-            userService.changePassword(request);
-
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-        } catch (CustomException ex) {
-            return ErrorResponseUtil.errorResponse(ex);
-        }
-
-    }
-
-    @PostMapping(value = "/{name}/reset-password")
-    public ResponseEntity<Void> resetPassword(@PathVariable("name") String epfNumber) {
-
-        try {
-            userService.resetPassword(epfNumber);
-
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-        } catch (CustomException ex) {
-            return ErrorResponseUtil.errorResponse(ex);
-        }
-
-    }*/
 }

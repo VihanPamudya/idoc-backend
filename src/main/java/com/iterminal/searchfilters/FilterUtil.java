@@ -6,10 +6,7 @@ import com.iterminal.exception.InvalidInputException;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- *
- * @author suranga Created date: Feb 20, 2022
- */
+
 public class FilterUtil {
 
     private static String generatePropertyCondition(PropertyFilterDto propertyFilter) throws CustomException {

@@ -70,11 +70,12 @@ public class CompanyService implements ICompanyService {
 
             long currentTime = Instant.now().getEpochSecond();
 
-            String companyName = InputValidatorUtil.validateStringProperty(MessagesAndContent.COMPANY_M01, company.getCompanyName(), "Company Name", 100);
+            String companyName = InputValidatorUtil.validateStringProperty(MessagesAndContent.COMPANY_M012, company.getCompanyName(), "Company Name", 100);
             Optional<Company> foundCompany = companyRepository.findByName(companyName);
             if(foundCompany.isPresent()) {
                 throw new AlreadyExistException("A company with name " + companyName + " already exists.");
             }
+
             companyRequest.setCompanyName(companyName);
 
             String companyEmail = InputValidatorUtil.validateStringProperty(MessagesAndContent.COMPANY_M02, company.getCompanyEmail(), "Company Email", 100);
@@ -86,8 +87,8 @@ public class CompanyService implements ICompanyService {
             String storage = InputValidatorUtil.validateStringProperty(MessagesAndContent.COMPANY_M04, company.getTotalStorage(), "Company Storage", 50);
             companyRequest.setTotalStorage(storage);
 
-            String documentURL = InputValidatorUtil.validateStringProperty(MessagesAndContent.COMPANY_M05, company.getDocumentUploadURL(), "Document Upload URL", 100);
-            companyRequest.setDocumentUploadURL(documentURL);
+//            String documentURL = InputValidatorUtil.validateStringProperty(MessagesAndContent.COMPANY_M05, company.getDocumentUploadURL(), "Document Upload URL", 100);
+            companyRequest.setDocumentUploadURL(company.getDocumentUploadURL());
 
             String contactName = InputValidatorUtil.validateStringProperty(MessagesAndContent.COMPANY_M06, company.getContactName(), "Contact Name", 100);
             companyRequest.setContactName(contactName);
@@ -134,6 +135,93 @@ public class CompanyService implements ICompanyService {
             }
 
             CompanyDto companyDto = convertCompanyToCompanyResponseDto(savedCompany);
+            return companyDto;
+
+        } catch (CustomException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new UnknownException(ex.getMessage());
+        }
+    }
+
+    @Override
+    public CompanyDto update(Long companyId, CompanyRequestDto company) throws CustomException {
+        try {
+
+            if (company == null) {
+                throw new InvalidInputException(MessagesAndContent.COMMON_M01);
+            }
+
+
+            Optional<Company> foundCompany = companyRepository.findById(companyId);
+
+            if (!foundCompany.isPresent()) {
+                throw new DoesNotExistException(MessagesAndContent.COMPANY_M09);
+            }
+
+            Company currentCompany = foundCompany.get();
+
+            String companyName = InputValidatorUtil.validateStringProperty(MessagesAndContent.COMPANY_M01, company.getCompanyName(), "Company Name", 100);
+            int companyFound=companyRepository.countCompaniesByCompanyNameEquals(companyName);
+            if(companyFound>0 && !foundCompany.get().getCompanyName().equals(company.getCompanyName())){
+                throw new AlreadyExistException("A company with name " + companyName + " already exists.");
+            }
+            company.setCompanyName(companyName);
+
+            String companyEmail = InputValidatorUtil.validateStringProperty(MessagesAndContent.COMPANY_M02, company.getCompanyEmail(), "Company Email", 100);
+            company.setCompanyEmail(companyEmail);
+
+            String companyAddress = InputValidatorUtil.validateStringProperty(MessagesAndContent.COMPANY_M03, company.getCompanyAddress(), "Company Address", 100);
+            company.setCompanyAddress(companyAddress);
+
+            String storage = InputValidatorUtil.validateStringProperty(MessagesAndContent.COMPANY_M04, company.getTotalStorage(), "Company Storage", 50);
+            company.setTotalStorage(storage);
+
+//            String documentURL = InputValidatorUtil.validateStringProperty(MessagesAndContent.COMPANY_M05, company.getDocumentUploadURL(), "Document Upload URL", 100);
+            company.setDocumentUploadURL(company.getDocumentUploadURL());
+
+            String contactName = InputValidatorUtil.validateStringProperty(MessagesAndContent.COMPANY_M06, company.getContactName(), "Contact Name", 100);
+            company.setContactName(contactName);
+
+            String contactEmail = InputValidatorUtil.validateStringProperty(MessagesAndContent.COMPANY_M07, company.getContactEmail(), "Contact Email", 100);
+            company.setCompanyEmail(contactEmail);
+
+            String mobileNo = InputValidatorUtil.validateStringProperty(MessagesAndContent.COMPANY_M08, company.getContactNumber(), "Contact Number", 100);
+            company.setContactNumber(mobileNo);
+
+            if (!currentCompany.getCompanyEmail().equals(companyEmail)) {
+                if (companyRepository.countByCompanyEmail(companyEmail) > 0) {
+                    throw new AlreadyExistException(MessagesAndContent.USER_M034);
+                }
+            }
+
+            if (!currentCompany.getContactEmail().equals(contactEmail)) {
+                if (companyRepository.countByContactEmail(contactEmail) > 0) {
+                    throw new AlreadyExistException(MessagesAndContent.USER_M034);
+                }
+            }
+
+
+            if (!InputValidatorUtil.isValidEmail(companyEmail)) {
+                throw new InvalidInputException(MessagesAndContent.USER_M08);
+            }
+
+            if (!InputValidatorUtil.isValidEmail(contactEmail)) {
+                throw new InvalidInputException(MessagesAndContent.USER_M08);
+            }
+
+            currentCompany.setCompanyName(company.getCompanyName());
+            currentCompany.setCompanyEmail(company.getCompanyEmail());
+            currentCompany.setCompanyAddress(company.getCompanyAddress());
+            currentCompany.setTotalStorage(company.getTotalStorage());
+            currentCompany.setDocumentUploadURL(company.getDocumentUploadURL());
+            currentCompany.setContactName(company.getContactName());
+            currentCompany.setContactEmail(company.getContactEmail());
+            currentCompany.setContactNumber(company.getContactNumber());
+            Company updatedCompany = companyRepository.save(currentCompany);
+
+
+            CompanyDto companyDto = convertCompanyToCompanyResponseDto(updatedCompany);
             return companyDto;
 
         } catch (CustomException ex) {
@@ -225,93 +313,6 @@ public class CompanyService implements ICompanyService {
             } else {
                 throw new DoesNotExistException(MessagesAndContent.COMPANY_M09);
             }
-
-        } catch (CustomException ex) {
-            throw ex;
-        } catch (Exception ex) {
-            throw new UnknownException(ex.getMessage());
-        }
-    }
-
-    @Override
-    public CompanyDto update(Long companyId, CompanyRequestDto company) throws CustomException {
-        try {
-
-            if (company == null) {
-                throw new InvalidInputException(MessagesAndContent.COMMON_M01);
-            }
-
-
-            Optional<Company> foundCompany = companyRepository.findById(companyId);
-
-            if (!foundCompany.isPresent()) {
-                throw new DoesNotExistException(MessagesAndContent.COMPANY_M09);
-            }
-
-            Company currentCompany = foundCompany.get();
-
-            String companyName = InputValidatorUtil.validateStringProperty(MessagesAndContent.COMPANY_M01, company.getCompanyName(), "Company Name", 100);
-            Optional<Company> companyFound = companyRepository.findByName(companyName);
-            if(companyFound.isPresent() && !companyName.equalsIgnoreCase(company.getCompanyName())) {
-                throw new AlreadyExistException("A company with name " + companyName + " already exists.");
-            }
-            company.setCompanyName(companyName);
-
-            String companyEmail = InputValidatorUtil.validateStringProperty(MessagesAndContent.COMPANY_M02, company.getCompanyEmail(), "Company Email", 100);
-            company.setCompanyEmail(companyEmail);
-
-            String companyAddress = InputValidatorUtil.validateStringProperty(MessagesAndContent.COMPANY_M03, company.getCompanyAddress(), "Company Address", 100);
-            company.setCompanyAddress(companyAddress);
-
-            String storage = InputValidatorUtil.validateStringProperty(MessagesAndContent.COMPANY_M04, company.getTotalStorage(), "Company Storage", 50);
-            company.setTotalStorage(storage);
-
-            String documentURL = InputValidatorUtil.validateStringProperty(MessagesAndContent.COMPANY_M05, company.getDocumentUploadURL(), "Document Upload URL", 100);
-            company.setDocumentUploadURL(documentURL);
-
-            String contactName = InputValidatorUtil.validateStringProperty(MessagesAndContent.COMPANY_M06, company.getContactName(), "Contact Name", 100);
-            company.setContactName(contactName);
-
-            String contactEmail = InputValidatorUtil.validateStringProperty(MessagesAndContent.COMPANY_M07, company.getContactEmail(), "Contact Email", 100);
-            company.setCompanyEmail(contactEmail);
-
-            String mobileNo = InputValidatorUtil.validateStringProperty(MessagesAndContent.COMPANY_M08, company.getContactNumber(), "Contact Number", 100);
-            company.setContactNumber(mobileNo);
-
-            if (!currentCompany.getCompanyEmail().equals(companyEmail)) {
-                if (companyRepository.countByCompanyEmail(companyEmail) > 0) {
-                    throw new AlreadyExistException(MessagesAndContent.USER_M034);
-                }
-            }
-
-            if (!currentCompany.getContactEmail().equals(contactEmail)) {
-                if (companyRepository.countByContactEmail(contactEmail) > 0) {
-                    throw new AlreadyExistException(MessagesAndContent.USER_M034);
-                }
-            }
-
-
-            if (!InputValidatorUtil.isValidEmail(companyEmail)) {
-                throw new InvalidInputException(MessagesAndContent.USER_M08);
-            }
-
-            if (!InputValidatorUtil.isValidEmail(contactEmail)) {
-                throw new InvalidInputException(MessagesAndContent.USER_M08);
-            }
-
-            currentCompany.setCompanyName(company.getCompanyName());
-            currentCompany.setCompanyEmail(company.getCompanyEmail());
-            currentCompany.setCompanyAddress(company.getCompanyAddress());
-            currentCompany.setTotalStorage(company.getTotalStorage());
-            currentCompany.setDocumentUploadURL(company.getDocumentUploadURL());
-            currentCompany.setContactName(company.getContactName());
-            currentCompany.setContactEmail(company.getContactEmail());
-            currentCompany.setContactNumber(company.getContactNumber());
-            Company updatedCompany = companyRepository.save(currentCompany);
-
-
-            CompanyDto companyDto = convertCompanyToCompanyResponseDto(updatedCompany);
-            return companyDto;
 
         } catch (CustomException ex) {
             throw ex;

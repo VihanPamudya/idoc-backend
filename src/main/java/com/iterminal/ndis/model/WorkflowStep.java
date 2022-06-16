@@ -31,9 +31,11 @@ public class WorkflowStep {
     @Column(name = "step_type", nullable = false, length = 25)
     private String stepType;
 
-    @ManyToOne
-    @JoinColumn(name = "step_assigned", referencedColumnName = "epf_number")
-    private User stepAssigned;
+    @Column(name = "step_assigned", nullable = false, length = 25)
+    private String stepAssigned;
+
+    @Column(name = "step_assigned_is_user", nullable = false, length = 25)
+    private boolean stepAssignedIsUser;
 
     @Column(name = "step_order")
     private Integer stepOrder;

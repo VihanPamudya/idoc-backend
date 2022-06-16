@@ -133,23 +133,6 @@ public class TagService implements ITagService {
     }
 
     @Override
-    public List<Tag> findChildrenById(long tag_Id) throws CustomException {
-
-        try {
-            Optional<Tag> parentTag = tagRepository.findById(tag_Id);
-            if(parentTag.isPresent()){
-                List<Tag> foundTags = tagRepository.findChildrenByParentId(tag_Id);
-                return foundTags;
-            } else {
-                throw new DoesNotExistException(MessagesAndContent.TAG_M02);
-            }
-
-        } catch (Exception ex) {
-            throw ex;
-        }
-    }
-
-    @Override
     public List<Tag> getAll() throws CustomException {
         try {
             List<Tag> foundTags =  tagRepository.findAll();
@@ -157,20 +140,14 @@ public class TagService implements ITagService {
             for(Tag tag : foundTags) {
 
                 if(tag.getParentTag_id().compareTo(0L) == 0) {
-//                    List<Tag> childrenTags = findChildrenById(tag.getId());
-//                    tag.setChildTags(childrenTags);
-                    parentTags.add(tag);
+                  parentTags.add(tag);
                 }
-//                else {
-//                    tag.setChildTags(new ArrayList<>());
-//                }
             }
             return parentTags;
         } catch (Exception ex) {
             throw new UnknownException(ex.getMessage());
         }
     }
-
 
     @Override
     public TagDto update(long tag_Id, TagRequestDto tag) throws CustomException {
@@ -188,8 +165,8 @@ public class TagService implements ITagService {
             Tag currentTag = foundTag.get();
 
             String name = InputValidatorUtil.validateStringProperty(MessagesAndContent.TAG_M01, tag.getName(), "tag name", 100 );
-            Optional<Tag> tagFound = tagRepository.findByName(name);
-            if(tagFound.isPresent() && !name.equalsIgnoreCase(tag.getName())) {
+            int tagFound = tagRepository.countTagsByNameEquals(name);
+            if(tagFound > 0 && !foundTag.get().getName().equals(tag.getName())) {
                 throw new AlreadyExistException("A tag with name " + name + " already exists.");
             }
 

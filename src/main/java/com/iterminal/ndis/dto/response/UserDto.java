@@ -18,13 +18,10 @@ import java.util.List;
 public class UserDto {
 
     private String epfNumber;
-//    private Long organizationId;
-//    private String organization;
     private String userName;
     private String firstName;
     private String lastName;
     private String password;
-//    private String groups;
     private String storageQuota;
     private String gender;
     private String dateOfBirth;

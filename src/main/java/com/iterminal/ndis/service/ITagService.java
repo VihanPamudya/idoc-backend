@@ -5,6 +5,7 @@ import com.iterminal.ndis.dto.TagRequestDto;
 import com.iterminal.ndis.dto.response.PaginationDto;
 import com.iterminal.ndis.dto.response.TagDto;
 import com.iterminal.ndis.model.Tag;
+import com.iterminal.ndis.model.UserGroup;
 import com.iterminal.searchfilters.RequestListDto;
 
 import java.util.List;
@@ -14,8 +15,6 @@ public interface ITagService {
     public TagDto create(TagRequestDto tag) throws CustomException;
 
     public TagDto findTagById(long tag_Id) throws CustomException;
-
-    public List<Tag> findChildrenById(long tag_Id) throws CustomException;
 
     public List<Tag> getAll() throws CustomException;
 

@@ -13,4 +13,7 @@ public class UserBasicDto {
 
     private String epfNumber;
     private String userName;
+    private String firstName;
+    private String lastName;
+
 }

@@ -16,4 +16,5 @@ public class UserGroupDto {
     private Long createdDateTime;
     private String createdBy;
     private int member_count;
+    private String parent_group_name;
 }

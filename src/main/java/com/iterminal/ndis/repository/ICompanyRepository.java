@@ -20,6 +20,8 @@ public interface ICompanyRepository extends JpaRepository<Company, Long> {
     List<Company> findAllByStatus(String status);
 
     @Query("SELECT g from Company g where g.companyName=?1")
-    Optional<Company> findByName(String name);
+    Optional<Company> findByName(String companyName);
+
+    int countCompaniesByCompanyNameEquals(String name);
 
 }

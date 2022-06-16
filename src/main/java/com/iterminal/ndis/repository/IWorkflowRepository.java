@@ -19,5 +19,9 @@ public interface IWorkflowRepository extends JpaRepository<Workflow, Long> {
     @Query("SELECT g from Workflow g where g.workflowName=?1")
     Optional<Workflow> findByName(String name);
 
+    int countByWorkflowNameEquals(String name);
+
     int countWorkflowsByStatusEquals(String status);
+
+    int countWorkflowsByWorkflowNameEquals(String status);
 }

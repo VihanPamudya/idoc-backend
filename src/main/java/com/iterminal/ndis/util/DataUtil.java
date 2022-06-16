@@ -1,9 +1,3 @@
-/*
- * Copyright (C) 2021 iTerminal Technologies Pvt Ltd.
- * All rights reserved. This software is the confidential and proprietary information of iTerminal Technologies Pvt Ltd.
- * You shall not disclose such confidential information and shall use it only in accordance with the terms of
- * the license agreement you entered into with iTerminal Technologies Pvt Ltd.
- */
 package com.iterminal.ndis.util;
 
 import com.iterminal.ndis.model.SubPackage;
@@ -28,16 +22,16 @@ public class DataUtil {
 
     public final static String STAR = "*";
     public static final String NOTIFICATION_TYPE_INFO = "Info";
-    private final static String PACKAGE_KEYS = "system-configuration,user-management,my-profile";
+    private final static String PACKAGE_KEYS = "system-configuration,user-management,my-profile,workflow-management,group-management,tag-management,search-management,document-management";
 
-    final static String SUB_PACKAGE_KEYS = "role-and-permission,user";
+    final static String SUB_PACKAGE_KEYS = "role-and-permission,user,workflow,group,tag,document,email-management,company-management,user-user-group";
 
-    final static String MODULE_KEYS = "";
+    final static String MODULE_KEYS = "company-registration";
 
     final static String SUB_MODULE_KEYS = "";
 
     final static String ACTION_KEYS = "add,modify,view,delete,"
-            + "approve,return,cancel,active,inactive,change-password,reset-password,"
+            + "approve,reject,active,inactive,change-password,list,count,reset-password,"
             + "block,unblock,lock,unlock,permissions";
 
     final static String SYSTEM_KEYS = PACKAGE_KEYS + "," + SUB_PACKAGE_KEYS + ","
@@ -133,27 +127,6 @@ public class DataUtil {
 
         return userName;
 
-    }
-
-    public static boolean validateOldNic(String nic) {
-        boolean valid = false;
-        if (nic != null && (nic.matches("^[0-9]{9}[vVxX]$"))) {
-            valid = true;
-        }
-        return valid;
-    }
-
-    public static boolean validateNewNic(String nic) {
-        boolean valid = false;
-        if (nic != null && (nic.matches("^[0-9]{12}$"))) {
-            valid = true;
-        }
-        return valid;
-    }
-
-    public static String oldNicToNewNic(String oldNic) {
-        String newNic = "19" + oldNic.substring(0, 5) + "0" + oldNic.substring(5, 9);
-        return newNic;
     }
 
 }

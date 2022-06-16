@@ -1,10 +1,4 @@
 
-/*
- * Copyright (C) 2021 iTerminal Technologies Pvt Ltd.
- * All rights reserved. This software is the confidential and proprietary information of iTerminal Technologies Pvt Ltd.
- * You shall not disclose such confidential information and shall use it only in accordance with the terms of
- * the license agreement you entered into with iTerminal Technologies Pvt Ltd.
- */
 package com.iterminal.ndis.service.email;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,13 +26,15 @@ public class EmailService {
         MimeMessagePreparator mailMessage = mimeMessage -> {
             MimeMessageHelper message = new MimeMessageHelper(
                     mimeMessage, true, "UTF-8");
-            message.setFrom(mailUsername, " National Development Information System");
+            message.setFrom(mailUsername, " iDoc Document Management System");
             message.setTo(to);
             message.setSubject(subject);
+
             if (htmlText == null) {
                 message.setText(body);
             } else {
-                message.setText(body, htmlText);
+                String htmlTextNew = htmlText.replace("{{systemName}}", "iDoc DMS");
+                message.setText(body, htmlTextNew);
             }
         };
         javaMailSender.send(mailMessage);

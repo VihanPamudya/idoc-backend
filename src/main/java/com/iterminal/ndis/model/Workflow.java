@@ -39,5 +39,9 @@ public class Workflow {
     @OneToMany
     @JoinColumn(name = "workflow_id", insertable = false, updatable = false)
     private List<WorkflowStep> steps = new ArrayList<>();
+    
+    @OneToMany
+    @JoinColumn(name = "workflow_id", insertable = false, updatable = false)
+    private List<WorkflowPermission> permissions = new ArrayList<>();
 
 }

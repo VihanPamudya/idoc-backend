@@ -1,9 +1,3 @@
-/*
- * Copyright (C) 2021 iTerminal Technologies Pvt Ltd.
- * All rights reserved. This software is the confidential and proprietary information of iTerminal Technologies Pvt Ltd.
- * You shall not disclose such confidential information and shall use it only in accordance with the terms of
- * the license agreement you entered into with iTerminal Technologies Pvt Ltd.
- */
 package com.iterminal.ndis.util;
 
 import com.iterminal.exception.InvalidInputException;
@@ -14,10 +8,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.TimeZone;
 
-/**
- *
- * @author Suranga
- */
+
 public class DateTimeUtil {
 
     public static final long EPOCH_YEAR_DIFF = 31536000;

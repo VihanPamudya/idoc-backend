@@ -2,6 +2,7 @@ package com.iterminal.ndis.service.impl;
 
 import com.iterminal.exception.*;
 import com.iterminal.ndis.dto.UserGroupRequestDto;
+import com.iterminal.ndis.dto.WorkflowPermissionRequestDto;
 import com.iterminal.ndis.dto.WorkflowRequestDto;
 import com.iterminal.ndis.dto.response.*;
 import com.iterminal.ndis.model.*;
@@ -52,11 +53,9 @@ public class WorkflowService implements IWorkflowService {
     final String USER_STATUS_ACTIVE = "Active";
     final String USER_STATUS_INACTIVE = "Inactive";
 
-
     final String WORKFLOW_STEP_SUB_ACTION_ADD_TAG = "Add";
     final String WORKFLOW_STEP_SUB_ACTION_REMOVE_TAG = "Remove";
     final String WORKFLOW_STEP_SUB_ACTION_PROCESS_FILES = "Process";
-
 
     enum WorkflowStepSubActionTypes {
         Add,
@@ -72,9 +71,9 @@ public class WorkflowService implements IWorkflowService {
             IWorkflowStepRepository workflowStepRepository,
             IWorkflowStepActionRepository workflowStepActionRepository,
             IWorkflowPermissionRepository workflowPermissionRepository,
-             CustomQueryRepository customQueryRepository,
+            CustomQueryRepository customQueryRepository,
             IUserGroupRepository userGroupRepository
-    ){
+    ) {
         this.workflowRepository = workflowRepository;
         this.userRepository = userRepository;
         this.userService = userService;
@@ -88,19 +87,19 @@ public class WorkflowService implements IWorkflowService {
     @Override
     public WorkflowDto create(WorkflowRequestDto workflowRequestDto) throws CustomException {
 
-        try{
+        try {
 
             Workflow workflow = new Workflow();
 
-            if(workflowRequestDto == null) {
-                throw new InvalidInputException("Invalid Input 1");
+            if (workflowRequestDto == null) {
+                throw new InvalidInputException("Invalid Input");
             }
 
             long currentTime = Instant.now().getEpochSecond();
 
             String workflowName = InputValidatorUtil.validateStringProperty("Invalid Workflow Name", workflowRequestDto.getWorkflowName(), "Workflow Name", 100);
             Optional<Workflow> foundWorkflow = workflowRepository.findByName(workflowName);
-            if(foundWorkflow.isPresent()) {
+            if (foundWorkflow.isPresent()) {
                 throw new AlreadyExistException("A Workflow with name " + workflowName + " already exists.");
             }
             workflow.setWorkflowName(workflowName);
@@ -115,8 +114,8 @@ public class WorkflowService implements IWorkflowService {
             workflow.setSteps(workflowStepList);
 
             Workflow savedWorkflow = workflowRepository.save(workflow);
-            if(!workflowRequestDto.getSteps().isEmpty()){
-                for(int i=0; i<workflowRequestDto.getSteps().size(); i++){
+            if (!workflowRequestDto.getSteps().isEmpty()) {
+                for (int i = 0; i < workflowRequestDto.getSteps().size(); i++) {
                     WorkflowStep workflowStep = (WorkflowStep) workflowRequestDto.getSteps().toArray()[i];
 
                     WorkflowStep savingWorkflowStep = new WorkflowStep();
@@ -126,16 +125,30 @@ public class WorkflowService implements IWorkflowService {
                     String description = InputValidatorUtil.validateStringProperty("Invalid Workflow Step Description", workflowStep.getDescription(), "Workflow Step Description", 225);
                     savingWorkflowStep.setDescription(description);
 
-                    String stepType = InputValidatorUtil.validateStringProperty("Invalid Workflow Step Type", workflowStep.getStepType(), "Workflow Step Type", 25);
+                    String stepType = InputValidatorUtil.validateStringProperty(MessagesAndContent.WORKFLOW_M04, workflowStep.getStepType(), "Workflow Step Type", 25);
                     savingWorkflowStep.setStepType(stepType);
 
-                    savingWorkflowStep.setStepOrder(i+1);
+                    savingWorkflowStep.setStepOrder(i + 1);
 
-                    Optional<User> foundUser = userRepository.findById(workflowStep.getStepAssigned().getEpfNumber());
-                    if(!foundUser.isPresent()) {
-                        throw new DoesNotExistException("Step Assigned User Does not exist");
+                    if (workflowStep.isStepAssignedIsUser()) {
+
+                        String epfNumber = workflowStep.getStepAssigned();
+                        Optional<User> foundUsers = userRepository.findById(epfNumber);
+                        if (!foundUsers.isPresent()) {
+                            throw new DoesNotExistException(MessagesAndContent.USER_M09);
+                        }
+
+                        savingWorkflowStep.setStepAssigned(epfNumber);
+                        savingWorkflowStep.setStepAssignedIsUser(true);
+
                     } else {
-                        savingWorkflowStep.setStepAssigned(foundUser.get());
+                        Long group_id = Long.parseLong(workflowStep.getStepAssigned());
+                        Optional<UserGroup> foundUserGroup = userGroupRepository.findById(group_id);
+                        if (!foundUserGroup.isPresent()) {
+                            throw new DoesNotExistException(MessagesAndContent.GROUP_M03);
+                        }
+                        savingWorkflowStep.setStepAssigned(String.valueOf(group_id));
+                        savingWorkflowStep.setStepAssignedIsUser(false);
                     }
 
                     List<WorkflowStepAction> workflowStepActionList = new ArrayList<>();
@@ -143,12 +156,12 @@ public class WorkflowService implements IWorkflowService {
 
                     WorkflowStep savedWorkflowStep = workflowStepRepository.save(savingWorkflowStep);
 
-                    for(WorkflowStepAction workflowStepAction: workflowStep.getStepActions()){
+                    for (WorkflowStepAction workflowStepAction : workflowStep.getStepActions()) {
                         WorkflowStepAction savedWorkflowStepAction = new WorkflowStepAction();
 
                         savedWorkflowStepAction.setWorkflowStepId(savedWorkflowStep.getId());
 
-                        switch (workflowStepAction.getWorkflowStepAction()){
+                        switch (workflowStepAction.getWorkflowStepAction()) {
                             case WORKFLOW_STEP_ACTION_ACCEPT:
                                 savedWorkflowStepAction.setWorkflowStepAction(WORKFLOW_STEP_ACTION_ACCEPT);
                                 break;
@@ -160,7 +173,7 @@ public class WorkflowService implements IWorkflowService {
                                 break;
                         }
 
-                        switch (workflowStepAction.getWorkflowStepSubAction()){
+                        switch (workflowStepAction.getWorkflowStepSubAction()) {
                             case WORKFLOW_STEP_SUB_ACTION_ADD_TAG:
                                 savedWorkflowStepAction.setWorkflowStepSubAction(WORKFLOW_STEP_SUB_ACTION_ADD_TAG);
                                 savedWorkflowStepAction.setTagName(workflowStepAction.getTagName());
@@ -182,41 +195,20 @@ public class WorkflowService implements IWorkflowService {
                 }
             }
 
-
-
             savedWorkflow.setSteps(workflowStepList);
 
             workflowStepRepository.saveAll(workflowStepList);
             workflowRepository.save(savedWorkflow);
 
-
             List<WorkflowPermission> savePermissionList = new ArrayList<>();
-            for (WorkflowPermission permission : workflowRequestDto.getPermissionList()) {
-
-                if(!permission.getEpfNumber().isEmpty()) {
-
-                    String epfNumber = permission.getEpfNumber();
-                    Optional<User> foundUsers = userRepository.findById(epfNumber);
-                    if (!foundUsers.isPresent()) {
-                        throw new DoesNotExistException(MessagesAndContent.USER_M09);
-                    }
-
-                } else {
-                    Long group_id = permission.getGroup_id();
-                    Optional<UserGroup> foundUserGroup = userGroupRepository.findById(group_id);
-                    if (!foundUserGroup.isPresent()) {
-                        throw new DoesNotExistException(MessagesAndContent.GROUP_M03);
-                    }
-                }
-                permission.setWorkflow_id(savedWorkflow.getId());
-                WorkflowPermission workflowPermission = workflowPermissionRepository.save(permission);
-                savePermissionList.add(workflowPermission);
+            for (WorkflowPermissionRequestDto permission : workflowRequestDto.getPermissionList()) {
+                System.out.println(permission);
             }
 
             WorkflowDto workflowDto = convertWorkflowToWorkflowResponseDto(savedWorkflow);
             return workflowDto;
 
-        } catch (CustomException ex){
+        } catch (CustomException ex) {
             throw ex;
         }
     }
@@ -224,19 +216,18 @@ public class WorkflowService implements IWorkflowService {
     @Override
     public WorkflowDto update(long workflow_Id, WorkflowRequestDto workflowRequestDto) throws CustomException {
         try {
-            if(workflowRequestDto == null ) {
+            if (workflowRequestDto == null) {
                 throw new InvalidInputException("Invalid Input");
             }
 
             Optional<Workflow> foundWorkflow = workflowRepository.findById(workflow_Id);
 
-
-            if(foundWorkflow.isEmpty()) {
+            if (foundWorkflow.isEmpty()) {
                 throw new DoesNotExistException("Workflow Does Not exist");
             }
 
             String userId = DataUtil.getUserName();
-            if(!foundWorkflow.get().getCreatedBy().getEpfNumber().equals(userId)) {
+            if (!foundWorkflow.get().getCreatedBy().getEpfNumber().equals(userId)) {
                 throw new CustomException(MessagesAndContent.COMMON_M27);
             }
 
@@ -248,35 +239,35 @@ public class WorkflowService implements IWorkflowService {
             newWorkflow.setStatus(foundWorkflow.get().getStatus());
 
             String workflowName = InputValidatorUtil.validateStringProperty(MessagesAndContent.WORKFLOW_M02, workflowRequestDto.getWorkflowName(), "Workflow Name", 50);
-            Optional<Workflow> workflowFound = workflowRepository.findByName(workflowName);
-            if(workflowFound.isPresent() && !workflowName.equalsIgnoreCase(workflowRequestDto.getWorkflowName())) {
+            int workflowFound = workflowRepository.countWorkflowsByWorkflowNameEquals(workflowName);
+            if (workflowFound > 0 && !foundWorkflow.get().getWorkflowName().equals(workflowRequestDto.getWorkflowName())) {
                 throw new AlreadyExistException("A Workflow with name " + workflowName + " already exists.");
             }
             newWorkflow.setWorkflowName(workflowName);
 
-            if(!foundWorkflow.get().getSteps().isEmpty()) {
+            if (!foundWorkflow.get().getSteps().isEmpty()) {
 //                workflowStepRepository.deleteAllInBatch(foundWorkflow.get().getSteps());
             }
 
             List<WorkflowStep> workflowStepList = new ArrayList<>();
 
-            for(int i=0; i<workflowRequestDto.getSteps().size(); i++){
+            for (int i = 0; i < workflowRequestDto.getSteps().size(); i++) {
                 WorkflowStep workflowStep = (WorkflowStep) workflowRequestDto.getSteps().toArray()[i];
 
                 WorkflowStep newWorkflowStep = new WorkflowStep();
                 WorkflowStep currentWorkflowStep = null;
                 Long workflowStepId = null;
 
-                if(workflowStep.getId() != null){
+                if (workflowStep.getId() != null) {
                     currentWorkflowStep = foundWorkflow.get().getSteps().stream().filter(workflowStep1 -> Objects.equals(workflowStep1.getId(), workflowStep.getId())).toArray().length > 0 ? (WorkflowStep) foundWorkflow.get().getSteps().stream().filter(workflowStep1 -> Objects.equals(workflowStep1.getId(), workflowStep.getId())).toArray()[0] : null;
 
-                    if(currentWorkflowStep == null){
-                        throw new DoesNotExistException("Workflow Step with id "  +workflowStep.getId()+ " does not exist");
+                    if (currentWorkflowStep == null) {
+                        throw new DoesNotExistException("Workflow Step with id " + workflowStep.getId() + " does not exist");
                     }
                     workflowStepId = currentWorkflowStep.getId();
+                    newWorkflowStep.setId(workflowStepId);
                 }
 
-                newWorkflowStep.setId(workflowStepId);
                 newWorkflowStep.setWorkflowId(workflow_Id);
 
                 String workflowDescription = InputValidatorUtil.validateStringProperty(MessagesAndContent.WORKFLOW_M03, workflowStep.getDescription(), "Workflow Description", 225);
@@ -285,33 +276,47 @@ public class WorkflowService implements IWorkflowService {
                 String workflowStepType = InputValidatorUtil.validateStringProperty(MessagesAndContent.WORKFLOW_M04, workflowStep.getStepType(), "Workflow Step Type", 25);
                 newWorkflowStep.setStepType(workflowStepType);
 
-                newWorkflowStep.setStepOrder(i+1);
+                newWorkflowStep.setStepOrder(i + 1);
 
-                Optional<User> foundUser = userRepository.findById(workflowStep.getStepAssigned().getEpfNumber());
-                if(foundUser.isEmpty()) {
-                    throw new DoesNotExistException("Step Assigned User Does not exist");
+                if (workflowStep.isStepAssignedIsUser()) {
+
+                    String epfNumber = workflowStep.getStepAssigned();
+                    Optional<User> foundUsers = userRepository.findById(epfNumber);
+                    if (!foundUsers.isPresent()) {
+                        throw new DoesNotExistException(MessagesAndContent.USER_M09);
+                    }
+
+                    newWorkflowStep.setStepAssigned(epfNumber);
+                    newWorkflowStep.setStepAssignedIsUser(true);
+
                 } else {
-                    newWorkflowStep.setStepAssigned(foundUser.get());
+                    Long group_id = Long.parseLong(workflowStep.getStepAssigned());
+                    Optional<UserGroup> foundUserGroup = userGroupRepository.findById(group_id);
+                    if (!foundUserGroup.isPresent()) {
+                        throw new DoesNotExistException(MessagesAndContent.GROUP_M03);
+                    }
+                    newWorkflowStep.setStepAssigned(String.valueOf(group_id));
+                    newWorkflowStep.setStepAssignedIsUser(false);
                 }
 
                 List<WorkflowStepAction> workflowStepActionList = new ArrayList<>();
                 newWorkflowStep.setStepActions(workflowStepActionList);
 
-                if(workflowStepId != null){
+                if(workflowStepId == null){
                     WorkflowStep savedWorkflowStep = workflowStepRepository.save(newWorkflowStep);
 
                     workflowStepId = savedWorkflowStep.getId();
                 }
-                for(WorkflowStepAction workflowStepAction: workflowStep.getStepActions()){
+                for (WorkflowStepAction workflowStepAction : workflowStep.getStepActions()) {
 
                     WorkflowStepAction newWorkflowStepAction = new WorkflowStepAction();
                     Long workflowStepActionId = null;
 
-                    if(workflowStepAction.getId() != null){
+                    if (workflowStepAction.getId() != null) {
                         Optional<WorkflowStepAction> savedWorkflowStepAction = workflowStepActionRepository.findById(workflowStepAction.getId());
 
-                        if(savedWorkflowStepAction.isEmpty()){
-                            throw new DoesNotExistException("Workflow Step Action with id "  +workflowStepAction.getId()+ " does not exist");
+                        if (savedWorkflowStepAction.isEmpty()) {
+                            throw new DoesNotExistException("Workflow Step Action with id " + workflowStepAction.getId() + " does not exist");
                         }
                         workflowStepActionId = savedWorkflowStepAction.get().getId();
                     }
@@ -320,7 +325,7 @@ public class WorkflowService implements IWorkflowService {
                     newWorkflowStepAction.setWorkflowStepId(workflowStepId);
                     newWorkflowStepAction.setId(workflowStepActionId);
 
-                    switch (workflowStepAction.getWorkflowStepAction()){
+                    switch (workflowStepAction.getWorkflowStepAction()) {
                         case WORKFLOW_STEP_ACTION_ACCEPT:
                             newWorkflowStepAction.setWorkflowStepAction(WORKFLOW_STEP_ACTION_ACCEPT);
                             break;
@@ -332,7 +337,7 @@ public class WorkflowService implements IWorkflowService {
                             break;
                     }
 
-                    switch (workflowStepAction.getWorkflowStepSubAction()){
+                    switch (workflowStepAction.getWorkflowStepSubAction()) {
                         case WORKFLOW_STEP_SUB_ACTION_ADD_TAG:
                             newWorkflowStepAction.setWorkflowStepSubAction(WORKFLOW_STEP_SUB_ACTION_ADD_TAG);
                             String tagName = InputValidatorUtil.validateStringProperty(MessagesAndContent.WORKFLOW_M05, workflowStepAction.getTagName(), "Workflow Step Action Tag Name", 25);
@@ -351,8 +356,7 @@ public class WorkflowService implements IWorkflowService {
                     workflowStepActionList.add(newWorkflowStepAction);
                 }
 
-                workflowStepActionRepository.deleteAllInBatch(workflowStepActionRepository.findAllByWorkflowStepId(workflowStepId));
-                System.out.println(workflowStepActionList);
+                workflowStepActionRepository.deleteAll(workflowStepActionRepository.findAllByWorkflowStepId(workflowStepId));
                 workflowStepActionRepository.saveAll(workflowStepActionList);
 
                 newWorkflowStep.setStepActions(workflowStepActionList);
@@ -360,10 +364,53 @@ public class WorkflowService implements IWorkflowService {
 
             }
 
-            newWorkflow.setSteps(workflowStepList);
+            if (!foundWorkflow.get().getSteps().isEmpty()) {
+                workflowStepRepository.deleteAll(foundWorkflow.get().getSteps());
+            }
+            List<WorkflowStep> updatedWorkflowStepList = workflowStepRepository.saveAll(workflowStepList);
 
-            workflowStepRepository.saveAll(workflowStepList);
+            newWorkflow.setSteps(updatedWorkflowStepList);
+
             workflowRepository.save(newWorkflow);
+
+            List<WorkflowPermission> savePermissionList = new ArrayList<>();
+            for (WorkflowPermissionRequestDto permission : workflowRequestDto.getPermissionList()) {
+                WorkflowPermission workflowPermission = new WorkflowPermission();
+
+                if (permission.isUser()) {
+
+                    String epfNumber = permission.getId();
+                    Optional<User> foundUsers = userRepository.findById(epfNumber);
+                    if (!foundUsers.isPresent()) {
+                        throw new DoesNotExistException(MessagesAndContent.USER_M09);
+                    }
+
+                    workflowPermission.setEpfNumber(epfNumber);
+
+                } else {
+                    Long group_id = Long.parseLong(permission.getId());
+                    Optional<UserGroup> foundUserGroup = userGroupRepository.findById(group_id);
+                    if (!foundUserGroup.isPresent()) {
+                        throw new DoesNotExistException(MessagesAndContent.GROUP_M03);
+                    }
+                    workflowPermission.setGroup_id(group_id);
+                }
+
+                workflowPermission.setCanRead(permission.isCanRead());
+                workflowPermission.setCanWrite(permission.isCanWrite());
+                //workflowPermission.setWorkflow_id(workflow_Id);
+                workflowPermission.setWorkflowId(newWorkflow.getId());
+
+                savePermissionList.add(workflowPermission);
+            }
+
+            List<WorkflowPermission> workflowPermissionList = workflowPermissionRepository.findAllByWorkflowId(newWorkflow.getId());
+            if (!workflowPermissionList.isEmpty()) {
+                workflowPermissionRepository.deleteAll(workflowPermissionList);
+            }
+            workflowPermissionRepository.saveAll(savePermissionList);
+
+            newWorkflow.setPermissions(savePermissionList);
 
             WorkflowDto workflowDto = convertWorkflowToWorkflowResponseDto(newWorkflow);
             return workflowDto;
@@ -376,13 +423,13 @@ public class WorkflowService implements IWorkflowService {
     }
 
     @Override
-    public List<WorkflowDto> getByCreator() throws CustomException{
+    public List<WorkflowDto> getByCreator() throws CustomException {
 
         try {
             List<Workflow> workflowList = workflowRepository.findAllByCreatedBy_EpfNumber(DataUtil.getUserName());
 
             List<WorkflowDto> workflowDtoList = new ArrayList<>();
-            for(Workflow workflow: workflowList){
+            for (Workflow workflow : workflowList) {
                 workflowDtoList.add(convertWorkflowToWorkflowResponseDto(workflow));
             }
             return workflowDtoList;
@@ -394,13 +441,13 @@ public class WorkflowService implements IWorkflowService {
     }
 
     @Override
-    public List<WorkflowDto> getAll() throws CustomException{
+    public List<WorkflowDto> getAll() throws CustomException {
 
         try {
             List<Workflow> workflowList = workflowRepository.findAll();
 
             List<WorkflowDto> workflowDtoList = new ArrayList<>();
-            for(Workflow workflow: workflowList){
+            for (Workflow workflow : workflowList) {
                 workflowDtoList.add(convertWorkflowToWorkflowResponseDto(workflow));
             }
             return workflowDtoList;
@@ -412,13 +459,13 @@ public class WorkflowService implements IWorkflowService {
     }
 
     @Override
-    public PaginationDto<Workflow> getPaginatedList(RequestListDto requestList) throws CustomException{
+    public PaginationDto<WorkflowDto> getPaginatedList(RequestListDto requestList) throws CustomException {
         try {
 
             if (requestList == null) {
                 throw new InvalidInputException(MessagesAndContent.COMMON_M01);
             }
-            PaginationDto<Workflow> paginationDto = new PaginationDto<>();
+            PaginationDto<WorkflowDto> paginationDto = new PaginationDto<>();
             List<Workflow> list = new ArrayList<>();
             int page = requestList.getPage();
             int limit = requestList.getLimit();
@@ -432,21 +479,26 @@ public class WorkflowService implements IWorkflowService {
             List<PropertyFilterDto> propertyFilterDtoList = requestList.getFilterData();
             PropertyFilterDto InactivePFD = new PropertyFilterDto();
 
-
-
             InactivePFD.setValue("'Active'");
             InactivePFD.setProperty("status");
             InactivePFD.setOperator(FilterOperator.EQUAL);
 
             propertyFilterDtoList.add(InactivePFD);
 
-            String sql = FilterUtil.generateListSql(TABLE_USER,  propertyFilterDtoList, requestList.getOrderFields(), true, page, limit);
+            String sql = FilterUtil.generateListSql(TABLE_USER, propertyFilterDtoList, requestList.getOrderFields(), true, page, limit);
             System.out.println(sql);
             System.out.println(requestList.getPage());
             list = customQueryRepository.getResultList(sql, Workflow.class);
-            paginationDto.setData(list);
+
+            ArrayList<WorkflowDto> workflowDtos = new ArrayList<>();
+            for (Workflow workflow : list) {
+                WorkflowDto convertedWorkflow = convertWorkflowToWorkflowResponseDto(workflow);
+                workflowDtos.add(convertedWorkflow);
+            }
+
+            paginationDto.setData(workflowDtos);
             paginationDto.setTotalSize(workflowRepository.countWorkflowsByStatusEquals("Active"));
-            return  paginationDto;
+            return paginationDto;
         } catch (CustomException ex) {
             //log.error(ex.getMessage());
             throw ex;
@@ -492,7 +544,7 @@ public class WorkflowService implements IWorkflowService {
 
             if (foundWorkflow.isPresent()) {
                 String userId = DataUtil.getUserName();
-                if(foundWorkflow.get().getCreatedBy().getEpfNumber().equals(userId)) {
+                if (foundWorkflow.get().getCreatedBy().getEpfNumber().equals(userId)) {
                     workflowRepository.delete(foundWorkflow.get());
 
                     List<WorkflowStep> foundWorkflowSteps = workflowStepRepository.findAllByWorkflowId(id);
@@ -518,17 +570,29 @@ public class WorkflowService implements IWorkflowService {
     }
 
     @Override
-    public WorkflowStepDto convertWorkflowStepToWorkflowStepResponseDto(WorkflowStep workflowStep) throws CustomException{
+    public WorkflowStepDto convertWorkflowStepToWorkflowStepResponseDto(WorkflowStep workflowStep) throws CustomException {
         WorkflowStepDto workflowStepDto = new WorkflowStepDto();
         BeanUtils.copyProperties(workflowStep, workflowStepDto);
 
-        workflowStepDto.setStepAssigned(userService.convertUserToUserBasicResponseDto(workflowStep.getStepAssigned()));
+        if(workflowStep.isStepAssignedIsUser()){
+            String epfNumber = workflowStep.getStepAssigned();
+            Optional<User> foundUser = userRepository.findById(epfNumber);
+            workflowStepDto.setStepAssignedName(foundUser.get().getUserName());
+            workflowStepDto.setStepAssigned(epfNumber);
+        }else{
+            String group_id = workflowStep.getStepAssigned();
+            Optional<UserGroup> foundUserGroup = userGroupRepository.findById(Long.parseLong(group_id));
+            workflowStepDto.setStepAssignedName(foundUserGroup.get().getName());
+            workflowStepDto.setStepAssigned(group_id);
+        }
+
+//        workflowStepDto.setStepAssigned(userService.convertUserToUserBasicResponseDto(workflowStep.getStepAssigned()));
 
         return workflowStepDto;
     }
 
     @Override
-    public WorkflowDto convertWorkflowToWorkflowResponseDto(Workflow workflow) throws CustomException{
+    public WorkflowDto convertWorkflowToWorkflowResponseDto(Workflow workflow) throws CustomException {
         WorkflowDto workflowDto = new WorkflowDto();
         BeanUtils.copyProperties(workflow, workflowDto);
 
@@ -536,8 +600,29 @@ public class WorkflowService implements IWorkflowService {
 
         workflowDto.setCreatedBy(userBasicDto);
 
+        ArrayList<WorkflowPermissionRequestDto> workflowPermissionRequestDtos = new ArrayList<>();
+        for (WorkflowPermission workflowPermission : workflow.getPermissions()) {
+            WorkflowPermissionRequestDto workflowPermissionRequestDto = new WorkflowPermissionRequestDto();
+
+            if (workflowPermission.getEpfNumber() == null || workflowPermission.getEpfNumber().isEmpty()) {
+                workflowPermissionRequestDto.setUser(false);
+                workflowPermissionRequestDto.setId(String.valueOf(workflowPermission.getGroup_id()));
+                workflowPermissionRequestDto.setName(userGroupRepository.findById(workflowPermission.getGroup_id()).get().getName());
+            } else {
+                workflowPermissionRequestDto.setUser(true);
+                workflowPermissionRequestDto.setId(workflowPermission.getEpfNumber());
+                workflowPermissionRequestDto.setName(userRepository.findById(workflowPermission.getEpfNumber()).get().getUserName());
+            }
+            workflowPermissionRequestDto.setPermissionId(String.valueOf(workflowPermission.getId()));
+            workflowPermissionRequestDto.setCanWrite(workflowPermission.isCanWrite());
+            workflowPermissionRequestDto.setCanRead(workflowPermission.isCanRead());
+            workflowPermissionRequestDtos.add(workflowPermissionRequestDto);
+        }
+        
+        workflowDto.setPermissionList(workflowPermissionRequestDtos);
+        
         List<WorkflowStepDto> workflowStepDtoList = new ArrayList<>();
-        for(WorkflowStep workflowStep: workflow.getSteps()){
+        for (WorkflowStep workflowStep : workflow.getSteps()) {
             workflowStepDtoList.add(convertWorkflowStepToWorkflowStepResponseDto(workflowStep));
         }
         workflowDto.setSteps(workflowStepDtoList);
@@ -561,6 +646,36 @@ public class WorkflowService implements IWorkflowService {
             List<Workflow> foundWorkflowList = workflowRepository.findAllByStatus(validatedStatus);
 
             return foundWorkflowList;
+        } catch (CustomException ex) {
+            throw ex;
+        } catch (Exception e) {
+            throw new UnknownException(e.getMessage());
+        }
+    }
+
+    @Override
+    public List<WorkflowBasicDto> getWorkflowByUserId() throws CustomException {
+        try {
+            String epfNumber = DataUtil.getUserName();
+
+            List<Long> workflowIdList = workflowPermissionRepository.getWorkflowIdByUserId(epfNumber);
+            List<WorkflowBasicDto> workflowList = new ArrayList<>();
+
+            for (Long workflowId : workflowIdList) {
+                WorkflowBasicDto workflowBasic = new WorkflowBasicDto();
+                Optional<Workflow> foundWorkflow  = workflowRepository.findById(workflowId);
+                if(foundWorkflow.isEmpty()) {
+                    throw new DoesNotExistException(MessagesAndContent.WORKFLOW_M01);
+                }
+
+                workflowBasic.setId(foundWorkflow.get().getId());
+                workflowBasic.setWorkflowName(foundWorkflow.get().getWorkflowName());
+                workflowBasic.setSteps(foundWorkflow.get().getSteps());
+                workflowList.add(workflowBasic);
+            }
+
+            return workflowList;
+
         } catch (CustomException ex) {
             throw ex;
         } catch (Exception e) {

@@ -2,10 +2,7 @@ package com.iterminal.searchfilters;
 
 import java.util.ArrayList;
 
-/**
- *
- * @author suranga Created date: Feb 20, 2022
- */
+
 public class RequestListDto {
 
     int page;

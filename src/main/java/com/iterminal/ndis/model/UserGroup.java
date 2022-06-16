@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.Persistent;
 
 import javax.persistence.*;
 import java.util.ArrayList;
@@ -32,12 +33,15 @@ public class UserGroup {
     @Column(name = "created_by", nullable = false, length = 50)
     private String createdBy;
 
-    @JoinColumn(name = "parent_group_id")
+    @Column(name = "parent_group_id")
     private Long parentGroup_id;
+
+    @Transient
+    private String parent_group_name;
 
     @Column(name = "status", length = 20, nullable = false)
     private String status;
 
-    @Column(name = "member_count")
+    @Transient
     private int member_count;
 }

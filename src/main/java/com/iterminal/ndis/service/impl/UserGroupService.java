@@ -77,7 +77,7 @@ public class UserGroupService implements IUserGroupService {
 
             long currentTime = Instant.now().getEpochSecond();
 
-            newGroupRequest.setCreatedBy("kfkk");
+            newGroupRequest.setCreatedBy(DataUtil.getUserName());
             newGroupRequest.setCreatedDateTime(currentTime);
             newGroupRequest.setStatus(USER_STATUS_ACTIVE);
             newGroupRequest.setMember_count(0);
@@ -89,10 +89,8 @@ public class UserGroupService implements IUserGroupService {
             return userGroupDto;
 
         } catch (CustomException ex) {
-            //log.error(ex.getMessage());
             throw ex;
         } catch (Exception ex) {
-//            log.error(ex.getMessage());
             throw new UnknownException(ex.getMessage());
         }
     }
@@ -114,15 +112,20 @@ public class UserGroupService implements IUserGroupService {
             UserGroup currentUserGroup = foundUserGroup.get();
 
             String name = InputValidatorUtil.validateStringProperty(MessagesAndContent.GROUP_M01, group.getName(), "group name", 50 );
-            Optional<UserGroup> foundGroup = userGroupRepository.findByName(name);
-            if(foundGroup.isPresent() && !name.equalsIgnoreCase(group.getName())) {
+            int foundGroup = userGroupRepository.countUserGroupsByNameEquals(name);
+            if(foundGroup > 0 && !foundUserGroup.get().getName().equals(group.getName())) {
                 throw new AlreadyExistException("A User Group with name " + name + " already exists.");
             }
 
             currentUserGroup.setName(name);
             currentUserGroup.setParentGroup_id(group.getParentGroup_id());
 
+            String parent_group_name = "";
+            parent_group_name = userGroupRepository.getParentName(group.getParentGroup_id());
+            currentUserGroup.setParent_group_name(parent_group_name);
+
             UserGroup updateUserGroup = userGroupRepository.save(currentUserGroup);
+            updateUserGroup.setMember_count(userGroupGroupsRepository.countByUserGroup(foundUserGroup.get().getId()));
 
             UserGroupDto userGroupDto = convertUserGroupToUserGroupResponseDto(updateUserGroup);
 
@@ -173,7 +176,7 @@ public class UserGroupService implements IUserGroupService {
     @Override
     public List<UserGroup> getAll() throws CustomException {
         try {
-            return userGroupRepository.findAll();
+            return userGroupRepository.findAllByStatusEquals("Active");
         } catch (Exception ex) {
             throw new UnknownException(ex.getMessage());
         }
@@ -218,7 +221,10 @@ public class UserGroupService implements IUserGroupService {
                 member_count = userGroupGroupsRepository.countByUserGroup(userGroup.getId());
                 System.out.println(member_count);
                 userGroup.setMember_count(member_count);
-                
+
+                String parent_group_name = "";
+                parent_group_name = userGroupRepository.getParentName(userGroup.getParentGroup_id());
+                userGroup.setParent_group_name(parent_group_name);
             }
             paginationDto.setData(list);
             paginationDto.setTotalSize(userGroupRepository.countUserGroupsByStatusEquals("Active"));
@@ -308,29 +314,6 @@ public class UserGroupService implements IUserGroupService {
                 err = ex.getCause().getCause().getMessage();
             }
             throw new InvalidFilterInputException("Sql query execute failed. " + err);
-        }
-    }
-
-    @Override
-    public List<UserGroup> getUserGroupListByStatus(String status) throws CustomException {
-        try {
-            IUserGroupService.Status statusValue = null;
-
-            String validatedStatus = InputValidatorUtil.validateStringProperty(GROUP_M05, status);
-
-            try {
-                statusValue = IUserGroupService.Status.valueOf(validatedStatus);
-            } catch (Exception e) {
-                throw new InvalidInputException(COMMON_M29);
-            }
-
-            List<UserGroup> foundUserGroupList = userGroupRepository.findAllByStatus(validatedStatus);
-
-            return foundUserGroupList;
-        } catch (CustomException ex) {
-            throw ex;
-        } catch (Exception e) {
-            throw new UnknownException(e.getMessage());
         }
     }
 }

@@ -39,6 +39,4 @@ public interface IUserGroupService {
     public UserGroup inactive(long group_id) throws  CustomException;
 
     public long getCount(RequestListCountDto requestListCount) throws CustomException;
-
-    public List<UserGroup> getUserGroupListByStatus(String status) throws CustomException;
 }

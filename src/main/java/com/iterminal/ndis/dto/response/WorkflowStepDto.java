@@ -20,8 +20,8 @@ public class WorkflowStepDto {
     private Long workflowId;
     private String description;
     private String stepType;
-    private UserBasicDto stepAssigned;
+    private String stepAssigned;
+    private String stepAssignedName;
     private Integer stepOrder;
-    private List<WorkflowStepAction> stepActions = new ArrayList<>();
 
 }

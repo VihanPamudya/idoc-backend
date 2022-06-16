@@ -58,7 +58,6 @@ public class UserGroupController {
     public ResponseEntity<PaginationDto<UserGroup>> getGroups(@RequestBody RequestListDto requestList) {
         try {
             PaginationDto<UserGroup> groupList = userGroupService.getPaginatedList(requestList);
-            System.out.println(groupList);
             return new ResponseEntity<>(groupList, HttpStatus.OK);
         } catch (CustomException ex) {
             return ErrorResponseUtil.errorResponse(ex);

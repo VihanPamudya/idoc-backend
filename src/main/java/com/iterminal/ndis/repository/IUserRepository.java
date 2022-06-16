@@ -24,8 +24,6 @@ public interface IUserRepository extends JpaRepository<User, String> {
 
     List<User> findAllByStatus(String status);
 
-    List<User> findAllByLocked(boolean isLocked);
-
     @Query(value = "select epf_number, username from user where epf_number =?1", nativeQuery = true)
     public UserBasicDto findUserWithBasic(String id);
 
@@ -33,5 +31,9 @@ public interface IUserRepository extends JpaRepository<User, String> {
     Optional<User> findByName(String name);
 
     int countUsersByStatusEquals(String status);
+
+
+    int countUsersByUserNameEquals(String name);
+
 
 }

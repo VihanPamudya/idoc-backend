@@ -36,9 +36,6 @@ public class User {
     @Column(name = "refresh_token", nullable = false, length = 100)
     private String refreshToken;
 
-//    @Column(name = "organization_id")
-//    private long organizationId;
-
     @Column(name = "user_name", nullable = false, length = 100)
     private String userName;
 
@@ -56,9 +53,6 @@ public class User {
 
     @Column(name = "gender", nullable = false, length = 15)
     private String gender;
-
-//    @Column(name = "user_groups", length = 30)
-//    private String groups;
 
     @Column(name = "date_of_birth", nullable = false, length = 15)
     private String dateOfBirth;
@@ -91,18 +85,6 @@ public class User {
     @Column(name = "no_of_attempts", nullable = false)
     private int noOfAttempts;
 
-    @JsonIgnore
-    @Column(name = "locked", nullable = false)
-    private boolean locked;
-
-    @JsonIgnore
-    @Column(name = "locked_date_time")
-    private Long lockedDateTime;
-
-    @JsonIgnore
-    @Column(name = "locked_by", length = 50)
-    private String lockedBy;
-
     @OneToMany(fetch = FetchType.LAZY)
     @JoinColumn(name = "epf_number", insertable = false, updatable = false)
     private List<UserRole> roleList = new ArrayList<>();
@@ -110,8 +92,4 @@ public class User {
     @OneToMany(fetch = FetchType.LAZY)
     @JoinColumn(name = "epf_number", insertable = false, updatable = false)
     private List<UserGroupGroups> groupList = new ArrayList<>();
-
-    @ManyToOne
-    @JoinColumn(name = "organization_id", insertable = false, updatable = false)
-    private Organization organization;
 }

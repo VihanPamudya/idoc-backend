@@ -15,7 +15,6 @@ import com.iterminal.exception.DoesNotExistException;
 import com.iterminal.exception.InvalidFilterInputException;
 import com.iterminal.exception.InvalidInputException;
 import com.iterminal.exception.UnknownException;
-import com.iterminal.ndis.service.IOrganizationService;
 import com.iterminal.ndis.service.email.EmailService;
 import com.iterminal.ndis.util.DataUtil;
 import com.iterminal.ndis.util.InputValidatorUtil;
@@ -52,15 +51,13 @@ public class UserService implements IUserService {
     private final IUserRoleRepository userRoleRepository;
     private final IUserHistoryRepository userHistoryRepository;
     private final IUserPasswordHistoryRepository userPasswordHistoryRepository;
-    private final IOrganizationService organizationService;
     private final IPackageRepository packageRepository;
     private final IRoleRepository roleRepository;
     private final IUserGroupRepository groupRepository;
     private final IUserGroupGroupsRepository groupGroupsRepository;
     private final INotificationRepository notificationRepository;
     private final SqlCustomQueryRepository sqlCustomQueryRepository;
-
-    final String TABLE_DESIGNATION = "designation";
+    private final IEmailMessageRepository emailMessageRepository;
 
     private EmailService emailService;
 
@@ -72,8 +69,6 @@ public class UserService implements IUserService {
     private final String USER_ACTION_INACTIVE = "Inactive";
     private final String USER_ACTION_ACTIVE = "Active";
     private final String USER_ACTION_UPDATE = "Update";
-    private final String USER_ACTION_BLOCK = "Block";
-    private final String USER_ACTION_UNBLOCK = "Unblock";
     final int MAX_NO_OF_ATTEMPTS = 3;
 
     final String TABLE_USER = "user";
@@ -96,10 +91,10 @@ public class UserService implements IUserService {
                        IUserGroupGroupsRepository groupGroupsRepository,
                        EmailService emailService,
                        IRoleRepository roleRepository,
-                       IOrganizationService organizationService,
                        IPackageRepository packageRepository,
                        INotificationRepository notificationRepository,
-                       SqlCustomQueryRepository sqlCustomQueryRepository) {
+                       SqlCustomQueryRepository sqlCustomQueryRepository,
+                       IEmailMessageRepository emailMessageRepository) {
         this.userRepository = userRepository;
         this.userHistoryRepository = userHistoryRepository;
         this.userPasswordHistoryRepository = userPasswordHistoryRepository;
@@ -107,12 +102,12 @@ public class UserService implements IUserService {
         this.customQueryRepository = customQueryRepository;
         this.emailService = emailService;
         this.userRoleRepository = userRoleRepository;
-        this.organizationService = organizationService;
         this.packageRepository = packageRepository;
         this.notificationRepository = notificationRepository;
         this.sqlCustomQueryRepository = sqlCustomQueryRepository;
         this.groupRepository = groupRepository;
         this.groupGroupsRepository = groupGroupsRepository;
+        this.emailMessageRepository = emailMessageRepository;
     }
 
     @Override
@@ -130,10 +125,9 @@ public class UserService implements IUserService {
 
             long currentTime = Instant.now().getEpochSecond();
 
-
             String userName = InputValidatorUtil.validateStringProperty(MessagesAndContent.USER_M04, request.getUserName(), "User Name", 150);
             Optional<User> foundUserName = userRepository.findByName(userName);
-            if(foundUserName.isPresent()) {
+            if (foundUserName.isPresent()) {
                 throw new AlreadyExistException("A User with name " + userName + " already exists.");
             }
             userRequest.setUserName(userName);
@@ -144,16 +138,16 @@ public class UserService implements IUserService {
             String lastName = InputValidatorUtil.validateStringProperty(MessagesAndContent.USER_M37, request.getLastName(), "Last Name", 150);
             userRequest.setLastName(lastName);
 
-            String storageQuota = InputValidatorUtil.validateStringProperty(MessagesAndContent.USER_M05, request.getStorageQuota(), "Storage Quota", 150);
+            String storageQuota = InputValidatorUtil.validateStringProperty(MessagesAndContent.USER_M012, request.getStorageQuota(), "Storage Quota", 150);
             userRequest.setStorageQuota(storageQuota);
 
-            String gender = InputValidatorUtil.validateStringProperty(MessagesAndContent.USER_M06, request.getGender(), "Gender", 150);
+            String gender = InputValidatorUtil.validateStringProperty(MessagesAndContent.USER_M013, request.getGender(), "Gender", 150);
             userRequest.setGender(gender);
 
-            String dateOfBirth = InputValidatorUtil.validateStringProperty(MessagesAndContent.USER_M07, request.getDateOfBirth(), "Date of Birth", 150);
+            String dateOfBirth = InputValidatorUtil.validateStringProperty(MessagesAndContent.USER_M037, request.getDateOfBirth(), "Date of Birth", 150);
             userRequest.setDateOfBirth(dateOfBirth);
 
-            String address = InputValidatorUtil.validateStringProperty(MessagesAndContent.USER_M04, request.getAddress(), "Address", 150);
+            String address = InputValidatorUtil.validateStringProperty(MessagesAndContent.USER_M038, request.getAddress(), "Address", 150);
             userRequest.setAddress(address);
 
             String email = InputValidatorUtil.validateStringProperty(MessagesAndContent.USER_M05, request.getEmail(), "Email", 50);
@@ -177,14 +171,13 @@ public class UserService implements IUserService {
                 throw new AlreadyExistException(MessagesAndContent.USER_M07);
             }
 
-            // UserRole
-
+            // UserRole check
             if (request.getRoleList() == null) {
-                throw new InvalidInputException("userRole null");
+                throw new InvalidInputException("User Role Null.");
             }
-            System.out.println(request.getRoleList());
+
             if (request.getRoleList().isEmpty()) {
-                throw new InvalidInputException("userRole Empty");
+                throw new InvalidInputException("User Role Empty.");
             }
 
             for (UserRole userRole : request.getRoleList()) {
@@ -205,28 +198,27 @@ public class UserService implements IUserService {
                 userRole.setRole(role);
             }
 
-            // UserGroup
-
+            // UserGroup check
             if (request.getGroupList() == null) {
-                throw new InvalidInputException("userGroup null");
+                throw new InvalidInputException("User Group Null.");
             }
-            System.out.println(request.getGroupList());
+
             if (request.getGroupList().isEmpty()) {
-                throw new InvalidInputException("userGroup Empty");
+                throw new InvalidInputException("User Group Empty.");
             }
 
             for (UserGroupGroups userGroupGroups : request.getGroupList()) {
 
                 UserGroup userGroup = userGroupGroups.getUserGroup();
                 if (userGroup == null) {
-                    throw new InvalidInputException(MessagesAndContent.USER_M031);
+                    throw new InvalidInputException(MessagesAndContent.GROUP_M06);
                 }
                 if (userGroup.getId() == null) {
-                    throw new InvalidInputException(MessagesAndContent.USER_M031);
+                    throw new InvalidInputException(MessagesAndContent.GROUP_M06);
                 }
                 Optional<UserGroup> foundGroups = groupRepository.findById(userGroup.getId());
                 if (!foundGroups.isPresent()) {
-                    throw new DoesNotExistException(MessagesAndContent.ROLE_M04);
+                    throw new DoesNotExistException(MessagesAndContent.GROUP_M07);
                 } else {
                     userGroup = foundGroups.get();
                 }
@@ -249,19 +241,19 @@ public class UserService implements IUserService {
 
             //sentEmail
             try {
-                String messageBody = "Hey " + savedUser.getUserName() + ",\n"
-                        + "\n"
-                        + "Welcome to iDoc. Your account has been created. Here are your credentials.\n"
-                        + "Sign-in Details Username: Use your EPF number as the username. Temporary Password: " + password + " \n"
-                        + "\n"
-                        + ndisUrl + " - iDoc Administration";
-                emailService.send(savedUser.getEmail(), "Create a new user account", messageBody, null);
+                String messageTemplate = emailMessageRepository.findEmailMessageByMessageValue("createAccount").getMessageText();
+
+                messageTemplate = messageTemplate.replace("{{user}}", savedUser.getUserName());
+                messageTemplate = messageTemplate.replace("{{password}}", password);
+                messageTemplate = messageTemplate.replace("{{url}}", ndisUrl);
+
+                emailService.send(savedUser.getEmail(), "Create a new user account", "", messageTemplate);
             } catch (Exception ex) {
                 log.error(ex.getMessage());
                 //sent Email error
             }
 
-            // UserRole
+            // UserRole add
             List<UserRole> saveRoleList = new ArrayList<>();
 
             if (request.getRoleList() != null && request.getRoleList().size() > 0) {
@@ -280,7 +272,7 @@ public class UserService implements IUserService {
                 }
             }
 
-            // UserGroup
+            // UserGroup add
             List<UserGroupGroups> saveGroupList = new ArrayList<>();
 
             if (request.getGroupList() != null && request.getGroupList().size() > 0) {
@@ -294,11 +286,10 @@ public class UserService implements IUserService {
                 }
             }
 
-            updateHistory(USER_ACTION_CREATE, savedUser, "User account has been created.");
+            updateHistory(USER_ACTION_CREATE, savedUser, "User account has been created."); //call the user history
 
 
             UserDto userDto = convertUserToUserResponseDto(savedUser);
-//            userDto.setOrganization(organization.getName());
             userDto.setRoleList(saveRoleList);
             userDto.setGroupList(saveGroupList);
 
@@ -315,6 +306,211 @@ public class UserService implements IUserService {
     }
 
     @Override
+    public UserDto update(String epfNumber, UserRequestDto userRequest) throws CustomException {
+
+        try {
+
+            if (userRequest == null) {
+                throw new InvalidInputException(MessagesAndContent.COMMON_M01);
+            }
+
+            epfNumber = InputValidatorUtil.validateStringProperty(MessagesAndContent.USER_M01, epfNumber, "Epf Number", 50);
+
+            Optional<User> foundUser = userRepository.findById(epfNumber);
+
+            if (!foundUser.isPresent()) {
+                throw new DoesNotExistException(MessagesAndContent.USER_M09);
+            }
+
+            User currentUser = foundUser.get();
+
+            if (userRequest.getEpfNumber() != null) {
+                if (!epfNumber.equals(userRequest.getEpfNumber())) {
+                    throw new InvalidInputException(MessagesAndContent.USER_M027);
+                }
+            }
+
+            User updatingUser = new User();
+            updatingUser.setEpfNumber(epfNumber);
+
+            String userName = InputValidatorUtil.validateStringProperty(MessagesAndContent.USER_M04, userRequest.getUserName(), "User Name", 150);
+            int userFound = userRepository.countUsersByUserNameEquals(userName);
+            if (userFound > 0 && !foundUser.get().getUserName().equals(userRequest.getUserName())) {
+                throw new AlreadyExistException("A User with name " + userName + " already exists.");
+            }
+            updatingUser.setUserName(userName);
+
+
+            String email = InputValidatorUtil.validateStringProperty(MessagesAndContent.USER_M05, userRequest.getEmail(), "Email", 50);
+            if (!currentUser.getEmail().equals(email)) {
+                if (userRepository.countByEmail(email) > 0) {
+                    throw new AlreadyExistException(MessagesAndContent.USER_M034);
+                }
+            }
+            updatingUser.setEmail(email);
+
+
+            String firstName = InputValidatorUtil.validateStringProperty(MessagesAndContent.USER_M03, userRequest.getFirstName(), "User Name", 150);
+            updatingUser.setFirstName(firstName);
+
+            String lastName = InputValidatorUtil.validateStringProperty(MessagesAndContent.USER_M37, userRequest.getLastName(), "User Name", 150);
+            updatingUser.setLastName(lastName);
+
+            String storageQuota = InputValidatorUtil.validateStringProperty(MessagesAndContent.USER_M012, userRequest.getStorageQuota(), "Storage Quota", 150);
+            updatingUser.setStorageQuota(storageQuota);
+
+            String gender = InputValidatorUtil.validateStringProperty(MessagesAndContent.USER_M013, userRequest.getGender(), "Gender", 150);
+            updatingUser.setGender(gender);
+
+            String dateOfBirth = InputValidatorUtil.validateStringProperty(MessagesAndContent.USER_M037, userRequest.getDateOfBirth(), "Date of Birth", 150);
+            updatingUser.setDateOfBirth(dateOfBirth);
+
+            String address = InputValidatorUtil.validateStringProperty(MessagesAndContent.USER_M038, userRequest.getAddress(), "Address", 150);
+            updatingUser.setAddress(address);
+
+            String mobileNo = InputValidatorUtil.validateStringProperty(MessagesAndContent.USER_M06, userRequest.getMobileNumber(), "Mobile Number", 15);
+            updatingUser.setMobileNumber(mobileNo);
+
+
+            updatingUser.setStatus(currentUser.getStatus());
+            updatingUser.setNoOfAttempts(currentUser.getNoOfAttempts());
+            updatingUser.setRefreshToken(currentUser.getRefreshToken());
+            updatingUser.setToken(currentUser.getToken());
+            updatingUser.setFirstTime(false);
+            updatingUser.setPassword(currentUser.getPassword());
+            updatingUser.setSignIn(currentUser.isSignIn());
+            updatingUser.setCreatedBy(currentUser.getCreatedBy());
+            updatingUser.setLastSignIn(currentUser.getLastSignIn());
+            updatingUser.setCreatedDateTime(currentUser.getCreatedDateTime());
+
+
+            // UserRole check
+            if (userRequest.getRoleList() == null) {
+                throw new InvalidInputException("User Role Null.");
+            }
+            if (userRequest.getRoleList().isEmpty()) {
+                throw new InvalidInputException("User Role Empty.");
+            }
+
+            for (UserRole userRole : userRequest.getRoleList()) {
+
+                Role role = userRole.getRole();
+                if (role == null) {
+                    throw new InvalidInputException(MessagesAndContent.USER_M031);
+                }
+                if (role.getId() == null) {
+                    throw new InvalidInputException(MessagesAndContent.USER_M031);
+                }
+                Optional<Role> foundRoles = roleRepository.findById(role.getId());
+                if (!foundRoles.isPresent()) {
+                    throw new DoesNotExistException(MessagesAndContent.ROLE_M04);
+                } else {
+                    role = foundRoles.get();
+                }
+                userRole.setRole(role);
+            }
+
+            // UserGroup check
+            if (userRequest.getGroupList() == null) {
+                throw new InvalidInputException("User Group Null.");
+            }
+            if (userRequest.getGroupList().isEmpty()) {
+                throw new InvalidInputException("User Role Empty.");
+            }
+
+            for (UserGroupGroups userGroupGroups : userRequest.getGroupList()) {
+
+                UserGroup userGroup = userGroupGroups.getUserGroup();
+                System.out.println(userGroup);
+                if (userGroup == null) {
+                    throw new InvalidInputException(MessagesAndContent.GROUP_M06);
+                }
+                if (userGroup.getId() == null) {
+                    throw new InvalidInputException(MessagesAndContent.GROUP_M06);
+                }
+                Optional<UserGroup> foundGroups = groupRepository.findById(userGroup.getId());
+                if (!foundGroups.isPresent()) {
+                    throw new DoesNotExistException(MessagesAndContent.GROUP_M07);
+                } else {
+                    userGroup = foundGroups.get();
+                }
+                userGroupGroups.setUserGroup(userGroup);
+            }
+
+            if (!InputValidatorUtil.isValidEmail(email)) {
+                throw new InvalidInputException(MessagesAndContent.USER_M08);
+            }
+
+            User updatedUser = userRepository.save(updatingUser);
+
+            // UserRole update
+            List<UserRole> saveRoleList = new ArrayList<>();
+
+            List<UserRole> tempUserRoleList = userRoleRepository.findByEpfNumber(epfNumber);
+            if (tempUserRoleList != null && tempUserRoleList.size() > 0) {
+                userRoleRepository.deleteAll(tempUserRoleList);
+            }
+
+            if (userRequest.getRoleList() != null && userRequest.getRoleList().size() > 0) {
+                for (UserRole userRole : userRequest.getRoleList()) {
+                    userRole.setEpfNumber(epfNumber);
+                    if (userRole.getRole() != null && userRole.getRole().getId() != null && userRole.getRole().getId() > 0) {
+                        UserRole saveUserRole = userRoleRepository.save(userRole);
+                        if (saveUserRole.getRole().isAllPermissions()) {
+                            PermissionDto permission = new PermissionDto();
+                            permission.setPackageList(packageRepository.findAll());
+                            saveUserRole.getRole().setPermissions(permission);
+                        }
+                        saveRoleList.add(saveUserRole);
+
+                    }
+
+                }
+            }
+
+            // UserGroup update
+            List<UserGroupGroups> saveGroupList = new ArrayList<>();
+
+            List<UserGroupGroups> tempUserGroupList = groupGroupsRepository.findByEpfNumber(epfNumber);
+            if (tempUserGroupList != null && tempUserGroupList.size() > 0) {
+                groupGroupsRepository.deleteAll(tempUserGroupList);
+            }
+
+            if (userRequest.getGroupList() != null && userRequest.getGroupList().size() > 0) {
+                for (UserGroupGroups userGroupGroups : userRequest.getGroupList()) {
+                    userGroupGroups.setEpfNumber(epfNumber);
+
+                    if (userGroupGroups.getUserGroup() != null && userGroupGroups.getUserGroup().getId() != null && userGroupGroups.getUserGroup().getId() > 0) {
+
+                        UserGroupGroups saveUserGroup = groupGroupsRepository.save(userGroupGroups);
+                        System.out.println(userGroupGroups);
+                        saveGroupList.add(saveUserGroup);
+
+                    }
+
+                }
+            }
+
+            updateHistory(USER_ACTION_UPDATE, updatedUser, "User account has been updated.");
+            // update user history table
+
+            UserDto userDto = convertUserToUserResponseDto(updatedUser);
+            userDto.setRoleList(saveRoleList);
+            userDto.setGroupList(saveGroupList);
+
+            return userDto;
+
+        } catch (CustomException ex) {
+            log.error(ex.getMessage());
+            throw ex;
+        } catch (Exception ex) {
+            log.error(ex.getMessage());
+            throw new UnknownException(ex.getMessage());
+        }
+    }
+
+
+    @Override
     public UserDto findUserById(String epfNumber) throws CustomException {
 
         try {
@@ -329,7 +525,7 @@ public class UserService implements IUserService {
                 UserDto userDto = convertUserToUserResponseDto(foundUser);
                 return userDto;
             } else {
-                log.error("Cannot find the user by given EPF number: " + epfNumber);
+                log.error("Cannot find the user by given Employee number: " + epfNumber);
                 throw new DoesNotExistException(MessagesAndContent.USER_M09);
             }
 
@@ -365,9 +561,6 @@ public class UserService implements IUserService {
 
         UserDto userDto = new UserDto();
         BeanUtils.copyProperties(user, userDto);
-//        if (user.getOrganizationId() != 0) {
-//            userDto.setOrganization(organizationService.findById(user.getOrganizationId()).getName());
-//        }
         List<UserRole> userRoleList = customQueryRepository.getUserRoleList(user.getEpfNumber());
         if (userRoleList != null && userRoleList.size() > 0) {
             for (UserRole userRole : userRoleList) {
@@ -400,7 +593,6 @@ public class UserService implements IUserService {
             log.error(ex.getMessage());
             throw new UnknownException(ex.getMessage());
         }
-
     }
 
     @Override
@@ -463,14 +655,12 @@ public class UserService implements IUserService {
             paginationDto.setTotalSize(userRepository.countUsersByStatusEquals("Active"));
             return paginationDto;
         } catch (CustomException ex) {
-            //log.error(ex.getMessage());
             throw ex;
         } catch (Exception ex) {
             String err = "";
             if (ex.getCause() != null && ex.getCause().getCause() != null && ex.getCause().getCause().getMessage() != null) {
                 err = ex.getCause().getCause().getMessage();
             }
-            //log.error(ex.getMessage());
             throw new InvalidFilterInputException("Sql query execute failed. " + err);
         }
     }
@@ -483,7 +673,7 @@ public class UserService implements IUserService {
                 throw new InvalidInputException(MessagesAndContent.COMMON_M01);
             }
 
-            epfNumber = InputValidatorUtil.validateStringProperty(MessagesAndContent.USER_M01, epfNumber, "Epf Number", 50);
+            epfNumber = InputValidatorUtil.validateStringProperty(MessagesAndContent.USER_M01, epfNumber, "Employee Number", 50);
 
             Optional<User> foundUser = userRepository.findById(epfNumber);
 
@@ -501,6 +691,7 @@ public class UserService implements IUserService {
 
             String userName = InputValidatorUtil.validateStringProperty(MessagesAndContent.USER_M04, userRequest.getUserName(), "User Name", 150);
             userRequest.setUserName(userName);
+
 
             String firstName = InputValidatorUtil.validateStringProperty(MessagesAndContent.USER_M04, userRequest.getFirstName(), "User Name", 150);
             userRequest.setFirstName(firstName);
@@ -536,13 +727,6 @@ public class UserService implements IUserService {
                 throw new InvalidInputException(MessagesAndContent.USER_M08);
             }
 
-            if (currentUser.isLocked() && !currentUser.getLockedBy().equals(DataUtil.getUserName())) {
-                throw new AlreadyExistException(MessagesAndContent.COMMON_M03);
-            }
-            long lockedDateTime = 0;
-            currentUser.setLocked(false);
-            currentUser.setLockedDateTime(lockedDateTime);
-            currentUser.setLockedBy("");
 
             currentUser.setEpfNumber(epfNumber);
             currentUser.setUserName(userRequest.getUserName());
@@ -572,211 +756,6 @@ public class UserService implements IUserService {
 
     }
 
-    @Override
-    public UserDto update(String epfNumber, UserRequestDto userRequest) throws CustomException {
-
-        try {
-
-            if (userRequest == null) {
-                throw new InvalidInputException(MessagesAndContent.COMMON_M01);
-            }
-
-            epfNumber = InputValidatorUtil.validateStringProperty(MessagesAndContent.USER_M01, epfNumber, "Epf Number", 50);
-
-            Optional<User> foundUser = userRepository.findById(epfNumber);
-
-            if (!foundUser.isPresent()) {
-                throw new DoesNotExistException(MessagesAndContent.USER_M09);
-            }
-
-            User currentUser = foundUser.get();
-
-            if (userRequest.getEpfNumber() != null) {
-                if (!epfNumber.equals(userRequest.getEpfNumber())) {
-                    throw new InvalidInputException(MessagesAndContent.USER_M027);
-                }
-            }
-
-            String userName = InputValidatorUtil.validateStringProperty(MessagesAndContent.USER_M04, userRequest.getUserName(), "User Name", 150);
-            Optional<User> userFound = userRepository.findByName(userName);
-            if(userFound.isPresent() && !userName.equalsIgnoreCase(userRequest.getUserName())) {
-                throw new AlreadyExistException("A User with name " + userName + " already exists.");
-            }
-            userRequest.setUserName(userName);
-
-            String firstName = InputValidatorUtil.validateStringProperty(MessagesAndContent.USER_M04, userRequest.getFirstName(), "User Name", 150);
-            userRequest.setFirstName(firstName);
-
-            String lastName = InputValidatorUtil.validateStringProperty(MessagesAndContent.USER_M04, userRequest.getLastName(), "User Name", 150);
-            userRequest.setLastName(lastName);
-
-            String storageQuota = InputValidatorUtil.validateStringProperty(MessagesAndContent.USER_M04, userRequest.getStorageQuota(), "Storage Quota", 150);
-            userRequest.setStorageQuota(storageQuota);
-
-            String gender = InputValidatorUtil.validateStringProperty(MessagesAndContent.USER_M04, userRequest.getGender(), "Gender", 150);
-            userRequest.setGender(gender);
-
-            String dateOfBirth = InputValidatorUtil.validateStringProperty(MessagesAndContent.USER_M04, userRequest.getDateOfBirth(), "Date of Birth", 150);
-            userRequest.setDateOfBirth(dateOfBirth);
-
-            String address = InputValidatorUtil.validateStringProperty(MessagesAndContent.USER_M04, userRequest.getAddress(), "Address", 150);
-            userRequest.setAddress(address);
-
-            String email = InputValidatorUtil.validateStringProperty(MessagesAndContent.USER_M05, userRequest.getEmail(), "Email", 50);
-            userRequest.setEmail(email);
-
-            String mobileNo = InputValidatorUtil.validateStringProperty(MessagesAndContent.USER_M06, userRequest.getMobileNumber(), "Mobile Number", 15);
-            userRequest.setMobileNumber(mobileNo);
-
-            if (!currentUser.getEmail().equals(email)) {
-                if (userRepository.countByEmail(email) > 0) {
-                    throw new AlreadyExistException(MessagesAndContent.USER_M034);
-                }
-            }
-
-            // UserRole
-            if (userRequest.getRoleList() == null) {
-                throw new InvalidInputException(MessagesAndContent.USER_M029);
-            }
-            if (userRequest.getRoleList().isEmpty()) {
-                throw new InvalidInputException(MessagesAndContent.USER_M029);
-            }
-
-            for (UserRole userRole : userRequest.getRoleList()) {
-
-                Role role = userRole.getRole();
-                if (role == null) {
-                    throw new InvalidInputException(MessagesAndContent.USER_M031);
-                }
-                if (role.getId() == null) {
-                    throw new InvalidInputException(MessagesAndContent.USER_M031);
-                }
-                Optional<Role> foundRoles = roleRepository.findById(role.getId());
-                if (!foundRoles.isPresent()) {
-                    throw new DoesNotExistException(MessagesAndContent.ROLE_M04);
-                } else {
-                    role = foundRoles.get();
-                }
-                userRole.setRole(role);
-            }
-
-            // UserGroup
-            System.out.println(userRequest.getGroupList());
-            if (userRequest.getGroupList() == null) {
-                throw new InvalidInputException(MessagesAndContent.USER_M036);
-            }
-            if (userRequest.getGroupList().isEmpty()) {
-                throw new InvalidInputException(MessagesAndContent.USER_M036);
-            }
-
-            for (UserGroupGroups userGroupGroups : userRequest.getGroupList()) {
-
-                UserGroup userGroup = userGroupGroups.getUserGroup();
-                System.out.println(userGroup);
-                if (userGroup == null) {
-                    throw new InvalidInputException(MessagesAndContent.USER_M031);
-                }
-                if (userGroup.getId() == null) {
-                    throw new InvalidInputException(MessagesAndContent.USER_M031);
-                }
-                Optional<UserGroup> foundGroups = groupRepository.findById(userGroup.getId());
-                System.out.println(foundGroups);
-                if (!foundGroups.isPresent()) {
-                    throw new DoesNotExistException(MessagesAndContent.ROLE_M04);
-                } else {
-                    userGroup = foundGroups.get();
-                }
-                userGroupGroups.setUserGroup(userGroup);
-            }
-
-            if (!InputValidatorUtil.isValidEmail(email)) {
-                throw new InvalidInputException(MessagesAndContent.USER_M08);
-            }
-
-            if (currentUser.isLocked() && currentUser.getLockedBy() != null && !currentUser.getLockedBy().equals(DataUtil.getUserName())) {
-                throw new AlreadyExistException(MessagesAndContent.COMMON_M03);
-            }
-            long lockedDateTime = 0;
-            currentUser.setLocked(false);
-            currentUser.setLockedDateTime(lockedDateTime);
-            currentUser.setLockedBy("");
-            currentUser.setEpfNumber(epfNumber);
-            currentUser.setUserName(userRequest.getUserName());
-            currentUser.setFirstName(userRequest.getFirstName());
-            currentUser.setLastName(userRequest.getLastName());
-            currentUser.setGender(userRequest.getGender());
-            currentUser.setStorageQuota(userRequest.getStorageQuota());
-            currentUser.setDateOfBirth(userRequest.getDateOfBirth());
-            currentUser.setAddress(userRequest.getAddress());
-            currentUser.setEmail(userRequest.getEmail());
-            currentUser.setMobileNumber(userRequest.getMobileNumber());
-
-            User updatedUser = userRepository.save(currentUser);
-
-            // UserRole
-            List<UserRole> saveRoleList = new ArrayList<>();
-
-            List<UserRole> tempUserRoleList = userRoleRepository.findByEpfNumber(epfNumber);
-            if (tempUserRoleList != null && tempUserRoleList.size() > 0) {
-                userRoleRepository.deleteAllInBatch(tempUserRoleList);
-            }
-
-            if (userRequest.getRoleList() != null && userRequest.getRoleList().size() > 0) {
-                for (UserRole userRole : userRequest.getRoleList()) {
-                    userRole.setEpfNumber(epfNumber);
-                    if (userRole.getRole() != null && userRole.getRole().getId() != null && userRole.getRole().getId() > 0) {
-                        UserRole saveUserRole = userRoleRepository.save(userRole);
-                        if (saveUserRole.getRole().isAllPermissions()) {
-                            PermissionDto permission = new PermissionDto();
-                            permission.setPackageList(packageRepository.findAll());
-                            saveUserRole.getRole().setPermissions(permission);
-                        }
-                        saveRoleList.add(saveUserRole);
-
-                    }
-
-                }
-            }
-
-            // UserGroup
-            List<UserGroupGroups> saveGroupList = new ArrayList<>();
-
-            List<UserGroupGroups> tempUserGroupList = groupGroupsRepository.findByEpfNumber(epfNumber);
-            if (tempUserGroupList != null && tempUserGroupList.size() > 0) {
-                groupGroupsRepository.deleteAllInBatch(tempUserGroupList);
-            }
-
-            if (userRequest.getGroupList() != null && userRequest.getGroupList().size() > 0) {
-                for (UserGroupGroups userGroupGroups : userRequest.getGroupList()) {
-                    userGroupGroups.setEpfNumber(epfNumber);
-
-                    if (userGroupGroups.getUserGroup() != null && userGroupGroups.getUserGroup().getId() != null && userGroupGroups.getUserGroup().getId() > 0) {
-
-                        UserGroupGroups saveUserGroup = groupGroupsRepository.save(userGroupGroups);
-                        System.out.println(userGroupGroups);
-                        saveGroupList.add(saveUserGroup);
-
-                    }
-
-                }
-            }
-
-            updateHistory(USER_ACTION_UPDATE, updatedUser, "User account has been updated.");
-
-            UserDto userDto = convertUserToUserResponseDto(updatedUser);
-            userDto.setRoleList(saveRoleList);
-            userDto.setGroupList(saveGroupList);
-
-            return userDto;
-
-        } catch (CustomException ex) {
-            log.error(ex.getMessage());
-            throw ex;
-        } catch (Exception ex) {
-            log.error(ex.getMessage());
-            throw new UnknownException(ex.getMessage());
-        }
-    }
 
     @Override
     public void delete(String epfNumber) throws CustomException {
@@ -828,13 +807,12 @@ public class UserService implements IUserService {
 
             //sentEmail
             try {
-                String messageBody = "Hey " + updatedUser.getUserName() + ",\n"
-                        + "\n"
-                        + "Your user account of the Office for National Development Information System has been reactivated.\n"
-                        + "\n"
-                        + ndisUrl + "- Office for National Development Information System Administration";
+                String messageTemplate = emailMessageRepository.findEmailMessageByMessageValue("activateAccount").getMessageText();
 
-                emailService.send(updatedUser.getEmail(), "Reactivation a user profile", messageBody, null);
+                messageTemplate = messageTemplate.replace("{{user}}", updatedUser.getUserName());
+                messageTemplate = messageTemplate.replace("{{url}}", ndisUrl);
+
+                emailService.send(updatedUser.getEmail(), "Reactivation a user profile", "", messageTemplate);
 
             } catch (Exception ex) {
                 log.error(ex.getMessage());
@@ -880,13 +858,13 @@ public class UserService implements IUserService {
 
             //sentEmail
             try {
-                String messageBody = "Hey " + updatedUser.getUserName() + ",\n"
-                        + "\n"
-                        + "Your user account of the Office for National Development Information System has been deactivated.\n"
-                        + "If you want to reactivate your account, please contact the User Administrator on the administration helpline.\n"
-                        + "\n"
-                        + ndisUrl + "- Office for National Development Information System Administration";
-                emailService.send(updatedUser.getEmail(), "Inactivation of a user profile", messageBody, null);
+
+                String messageTemplate = emailMessageRepository.findEmailMessageByMessageValue("deactivateAccount").getMessageText();
+
+                messageTemplate = messageTemplate.replace("{{user}}", updatedUser.getUserName());
+                messageTemplate = messageTemplate.replace("{{url}}", ndisUrl);
+
+                emailService.send(updatedUser.getEmail(), "Inactivation of a user profile", "", messageTemplate);
             } catch (Exception ex) {
                 log.error(ex.getMessage());
             }
@@ -902,209 +880,6 @@ public class UserService implements IUserService {
         }
     }
 
-    @Override
-    public User block(String epfNumber) throws CustomException {
-        try {
-
-            epfNumber = InputValidatorUtil.validateStringProperty(MessagesAndContent.USER_M01, epfNumber);
-
-            Optional<User> foundUser = userRepository.findById(epfNumber);
-
-            if (!foundUser.isPresent()) {
-                throw new DoesNotExistException(MessagesAndContent.USER_M09);
-            }
-
-            User currentUser = foundUser.get();
-
-            if (currentUser.getStatus().equals(USER_STATUS_BLOCKED)) {
-                throw new AlreadyExistException(MessagesAndContent.USER_M012);
-            }
-
-            currentUser.setStatus(USER_STATUS_BLOCKED);
-
-            User updatedUser = userRepository.save(currentUser);
-
-            updateHistory(USER_ACTION_BLOCK, updatedUser, "User account has been blocked.");
-
-            //sentEmail
-            try {
-                String messageBody = "Hey " + updatedUser.getUserName() + ",\n"
-                        + "\n"
-                        + "Your user account of the Office for National Development Information System has been blocked.\n"
-                        + "If you want to unblock your account, please contact the User Administrator on the administration helpline.\n"
-                        + "\n"
-                        + ndisUrl + "- Office for National Development Information System Administration";
-                emailService.send(updatedUser.getEmail(), "Blocking a user profile", messageBody, null);
-            } catch (Exception ex) {
-                log.error(ex.getMessage());
-            }
-
-            return updatedUser;
-
-        } catch (CustomException ex) {
-            log.error(ex.getMessage());
-            throw ex;
-        } catch (Exception ex) {
-            log.error(ex.getMessage());
-            throw new UnknownException(ex.getMessage());
-        }
-    }
-
-    @Override
-    public User unblock(String epfNumber) throws CustomException {
-        try {
-
-            epfNumber = InputValidatorUtil.validateStringProperty(MessagesAndContent.USER_M01, epfNumber);
-
-            Optional<User> foundUser = userRepository.findById(epfNumber);
-
-            if (!foundUser.isPresent()) {
-                throw new DoesNotExistException(MessagesAndContent.USER_M09);
-            }
-            User currentUser = foundUser.get();
-
-            if (currentUser.getStatus().equals(USER_STATUS_ACTIVE)) {
-                throw new AlreadyExistException(MessagesAndContent.USER_M013);
-            }
-
-            if (!currentUser.getStatus().equals(USER_STATUS_BLOCKED)) {
-                throw new InvalidInputException(MessagesAndContent.COMMON_M02);
-            }
-
-            currentUser.setStatus(USER_STATUS_ACTIVE);
-            currentUser.setNoOfAttempts(0);
-
-            User updatedUser = userRepository.save(currentUser);
-
-            updateHistory(USER_ACTION_UNBLOCK, updatedUser, "User account has been unblocked.");
-
-            //sentEmail
-            try {
-                String messageBody = "Hey " + updatedUser.getUserName() + ",\n"
-                        + "\n"
-                        + "Your user account of the Office for National Development Information System has been unblocked.\n"
-                        + "\n"
-                        + ndisUrl + "- Office for National Development Information System Administration";
-
-                emailService.send(updatedUser.getEmail(), "Unblocking a user profile", messageBody, null);
-
-            } catch (Exception ex) {
-                log.error(ex.getMessage());
-            }
-
-            return updatedUser;
-
-        } catch (CustomException ex) {
-            log.error(ex.getMessage());
-            throw ex;
-        } catch (Exception ex) {
-            log.error(ex.getMessage());
-            throw new UnknownException(ex.getMessage());
-        }
-    }
-
-    @Override
-    public void lock(String epfNumber) throws CustomException {
-        try {
-
-            String userName = DataUtil.getUserName();
-
-            epfNumber = InputValidatorUtil.validateStringProperty(MessagesAndContent.USER_M01, epfNumber);
-
-            Optional<User> foundUser = userRepository.findById(epfNumber);
-
-            if (!foundUser.isPresent()) {
-                throw new DoesNotExistException(MessagesAndContent.USER_M09);
-            }
-            User currentUser = foundUser.get();
-
-            if (currentUser.isLocked() && currentUser.getLockedBy().equals(userName)) {
-                throw new AlreadyExistException(MessagesAndContent.COMMON_M06);
-            }
-
-            if (currentUser.isLocked() && !currentUser.getLockedBy().equals(userName)) {
-                throw new AlreadyExistException(MessagesAndContent.COMMON_M03);
-            }
-
-            long currentTime = Instant.now().getEpochSecond();
-            currentUser.setLocked(true);
-            currentUser.setLockedDateTime(currentTime);
-            currentUser.setLockedBy(userName);
-
-            userRepository.save(currentUser);
-
-        } catch (CustomException ex) {
-            log.error(ex.getMessage());
-            throw ex;
-        } catch (Exception ex) {
-            log.error(ex.getMessage());
-            throw new UnknownException(ex.getMessage());
-        }
-    }
-
-    @Override
-    public void unlock(String epfNumber) throws CustomException {
-        try {
-
-            epfNumber = InputValidatorUtil.validateStringProperty(MessagesAndContent.USER_M01, epfNumber);
-
-            Optional<User> foundUser = userRepository.findById(epfNumber);
-
-            if (!foundUser.isPresent()) {
-                throw new DoesNotExistException(MessagesAndContent.USER_M09);
-            }
-            User currentUser = foundUser.get();
-
-            if (!currentUser.isLocked()) {
-                throw new DoesNotExistException(MessagesAndContent.COMMON_M05);
-            }
-
-            String userName = DataUtil.getUserName();
-
-            if (!currentUser.getLockedBy().equals(userName)) {
-                throw new DoesNotExistException(MessagesAndContent.COMMON_M04);
-            }
-
-            long lockedDateTime = 0;
-            currentUser.setLocked(false);
-            currentUser.setLockedDateTime(lockedDateTime);
-            currentUser.setLockedBy("");
-            userRepository.save(currentUser);
-
-        } catch (CustomException ex) {
-            log.error(ex.getMessage());
-            throw ex;
-        } catch (Exception ex) {
-            log.error(ex.getMessage());
-            throw new UnknownException(ex.getMessage());
-        }
-    }
-
-    // cron: seconds / minutes / hours / day of the month / month / day of the week
-    // Current cron: Every hour
-    // Check cron: https://crontab.guru/  |   https://crontab.cronhub.io/
-    // test : @Scheduled(initialDelay = 1000L, fixedRate = 15000L)
-    @Scheduled(cron = "0 0 * * * *")
-    protected void unlockUserAutomatically() {
-        List<User> userListByLockedStatus = userRepository.findAllByLocked(true);
-
-        if (userListByLockedStatus != null) {
-            for (User foundUser : userListByLockedStatus) {
-
-                long currentTime = Instant.now().getEpochSecond();
-                long diff = TimeUnit.SECONDS.toHours(currentTime - foundUser.getLockedDateTime());
-
-                if (diff >= 1) {
-                    long lockedDateTime = 0;
-                    foundUser.setLocked(false);
-                    foundUser.setLockedDateTime(lockedDateTime);
-                    foundUser.setLockedBy("");
-                    log.info("Unlocked the User: " + foundUser.getEpfNumber() + ", automatically by scheduled task at " + System.currentTimeMillis());
-                    userRepository.save(foundUser);
-                }
-            }
-        }
-    }
 
     @Override
     public List<UserHistory> getUserHistory(String epfNumber) throws CustomException {
@@ -1239,20 +1014,15 @@ public class UserService implements IUserService {
 
             //sentEmail
             try {
-                String messageBody = "Hey " + savedUser.getUserName() + ",\n"
-                        + "\n"
-                        + "You have recently requested a password reset for your iDoc account.\n"
-                        + "To complete the process, provide the following temporary credentials provided and set a new password.\n"
-                        + "\n"
-                        + "Here are your credentials.\n"
-                        + "\n"
-                        + "Sign-in Details Username: Use your EPF number as the username. Temporary Password: " + password + " \n"
-                        + "\n"
-                        + "If you didn't make this change or if you believe an unauthorized person has accessed your account, please contact the system administrator."
-                        + "\n"
-                        + ndisUrl + "- iDOC Administration";
 
-                emailService.send(savedUser.getEmail(), "Reset password email", messageBody, null);
+                String messageTemplate = emailMessageRepository.findEmailMessageByMessageValue("resetPassword").getMessageText();
+
+                messageTemplate = messageTemplate.replace("{{user}}", savedUser.getUserName());
+                messageTemplate = messageTemplate.replace("{{password}}", password);
+                messageTemplate = messageTemplate.replace("{{url}}", ndisUrl);
+
+
+                emailService.send(savedUser.getEmail(), "Reset password email", "", messageTemplate);
             } catch (Exception ex) {
                 log.error(ex.getMessage());
                 //sent Email error

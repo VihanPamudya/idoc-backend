@@ -2,10 +2,7 @@ package com.iterminal.ndis.service;
 
 import com.iterminal.exception.CustomException;
 import com.iterminal.ndis.dto.WorkflowRequestDto;
-import com.iterminal.ndis.dto.response.PaginationDto;
-import com.iterminal.ndis.dto.response.UserDto;
-import com.iterminal.ndis.dto.response.WorkflowDto;
-import com.iterminal.ndis.dto.response.WorkflowStepDto;
+import com.iterminal.ndis.dto.response.*;
 import com.iterminal.ndis.model.User;
 import com.iterminal.ndis.model.UserGroup;
 import com.iterminal.ndis.model.Workflow;
@@ -29,7 +26,7 @@ public interface IWorkflowService {
 
     public List<WorkflowDto> getByCreator() throws CustomException;
 
-    public PaginationDto<Workflow> getPaginatedList(RequestListDto requestList) throws CustomException;
+    public PaginationDto<WorkflowDto> getPaginatedList(RequestListDto requestList) throws CustomException;
 
     public WorkflowStepDto convertWorkflowStepToWorkflowStepResponseDto(WorkflowStep workflowStep) throws CustomException;
 
@@ -40,5 +37,7 @@ public interface IWorkflowService {
     public Workflow inactive(long workflow_id) throws  CustomException;
 
     public List<Workflow> getWorkflowListByStatus(String status) throws CustomException;
+
+    public List<WorkflowBasicDto> getWorkflowByUserId() throws CustomException;
 
 }

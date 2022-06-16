@@ -1,9 +1,3 @@
-/*
- * Copyright (C) 2021 iTerminal Technologies Pvt Ltd.
- * All rights reserved. This software is the confidential and proprietary information of iTerminal Technologies Pvt Ltd.
- * You shall not disclose such confidential information and shall use it only in accordance with the terms of
- * the license agreement you entered into with iTerminal Technologies Pvt Ltd.
- */
 package com.iterminal.ndis.service.impl;
 
 import com.iterminal.exception.AuthorizationFailedException;
@@ -57,7 +51,7 @@ public class CustomUserDetailsService implements UserDetailsService {
             int count = userRepository.getUserFeatureActionCount(username, featureAction);
             if (count < 1) {
                 System.out.println("authorization---> : false");
-                throw new AuthorizationFailedException();
+                throw new AuthorizationFailedException("You don't have permission to execute current action");
             }
             System.out.println("authorization---> : true");
 

@@ -21,7 +21,7 @@ public class WorkflowPermission {
     private Long id;
 
     @Column(name = "workflow_id", length = 50, nullable = false)
-    private Long workflow_id;
+    private Long workflowId;
 
     @Column(name = "epf_number", length = 50 )
     private String epfNumber;

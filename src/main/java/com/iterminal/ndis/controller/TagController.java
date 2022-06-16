@@ -52,18 +52,6 @@ public class TagController {
         }
     }
 
-    @GetMapping(value = "/children/{id}")
-    public ResponseEntity<List<Tag>> getChildrenTags(@PathVariable("id") Long tag_Id) {
-
-        try {
-            List<Tag> childrenTagList = tagService.findChildrenById(tag_Id);
-            return new ResponseEntity<>(childrenTagList, HttpStatus.OK);
-        } catch (CustomException ex) {
-            return ErrorResponseUtil.errorResponse(ex);
-        }
-
-    }
-
     @PostMapping(value = "/add")
     public ResponseEntity<TagDto> createGroup(@RequestBody TagRequestDto tag) {
 
